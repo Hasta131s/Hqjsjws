@@ -69,22 +69,25 @@ import androidx.compose.ui.unit.sp
 import com.example.model.FolderGridColumns
 import com.example.model.FolderShape
 import com.example.model.IosWallpaperPreset
+import com.example.model.LauncherThemeMode
 import com.example.model.WidgetShape
 import com.example.ui.theme.ClockFontOption
 import com.example.ui.theme.LauncherFont
 import com.example.ui.theme.getClockFontFamily
 import com.example.ui.theme.getClockFontWeight
+import com.example.ui.theme.rememberColorOsPalette
 import com.example.viewmodel.LauncherUiState
 
 /**
  * Modern Inset Grouped Settings & Full Customization Sheet.
  * Features:
+ * - ColorOS Dark / Light (Black / White) Theme Mode
+ * - Blur Intensity & Low Opacity Glass controls
  * - 20 Selectable Clock Fonts
  * - Clock Size Slider
  * - Widget Scale & Shape Selector
- * - Dock App Limit Selector (Default 2 for ultra clean dock)
+ * - Dock App Limit Selector
  * - Grid Columns Selector
- * - Solid Matte Cards (No glass glare, no brand mentions)
  */
 @Composable
 fun IosSettingsSheet(
@@ -92,6 +95,9 @@ fun IosSettingsSheet(
     fontFamily: FontFamily,
     context: Context,
     onClose: () -> Unit,
+    onSelectThemeMode: (LauncherThemeMode) -> Unit = {},
+    onChangeSurfaceOpacity: (Float) -> Unit = {},
+    onChangeBlurRadius: (Float) -> Unit = {},
     onSelectIosWallpaper: (IosWallpaperPreset) -> Unit,
     onOpenOnlineWallpapers: () -> Unit,
     onPickGalleryWallpaper: (android.net.Uri) -> Unit,
@@ -102,10 +108,6 @@ fun IosSettingsSheet(
     onChangeWidgetShape: (WidgetShape) -> Unit = {},
     onChangeDockLimit: (Int) -> Unit,
     onChangeGridColumns: (Int) -> Unit,
-    onChangeFolderShape: (FolderShape) -> Unit = {},
-    onChangeFolderOpacity: (Float) -> Unit = {},
-    onChangeFolderGridColumns: (FolderGridColumns) -> Unit = {},
-    onOpenFolderConfig: () -> Unit = {},
     onToggleClock: () -> Unit,
     onToggleWeather: () -> Unit,
     onToggleBattery: () -> Unit,
@@ -124,6 +126,8 @@ fun IosSettingsSheet(
         }
     }
 
+    val palette = rememberColorOsPalette(themeMode = state.themeMode, surfaceOpacity = state.surfaceOpacity)
+
     AnimatedVisibility(
         visible = state.isCustomizeSheetOpen || state.isSettingsOpen,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -133,7 +137,7 @@ fun IosSettingsSheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF101012))
+                .background(if (palette.isDark) Color(0xFF0F1116) else Color(0xFFF1F5F9))
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -150,11 +154,11 @@ fun IosSettingsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Özelleştirme & Ayarlar",
-                        fontSize = 24.sp,
+                        text = "ColorOS Arayüzü & Ayarlar",
+                        fontSize = 22.sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = palette.primaryTextColor
                     )
 
                     // Done Button
@@ -172,6 +176,135 @@ fun IosSettingsSheet(
                             fontFamily = fontFamily,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 0: COLOR OS THEME MODE (BLACK / WHITE / SYSTEM)
+                IosSectionHeader(
+                    title = "COLOROS TEMA MODU (SİYAH & BEYAZ SEÇİMİ)",
+                    fontFamily = fontFamily,
+                    textColor = palette.accentColor
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard(cardBg = if (palette.isDark) Color(0xFF1B1F27) else Color.White) {
+                    LauncherThemeMode.values().forEachIndexed { index, mode ->
+                        val isSelected = state.themeMode == mode
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectThemeMode(mode) }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = mode.titleTr,
+                                    fontSize = 15.sp,
+                                    fontFamily = fontFamily,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = palette.primaryTextColor
+                                )
+                                Text(
+                                    text = mode.subtitleTr,
+                                    fontSize = 12.sp,
+                                    fontFamily = fontFamily,
+                                    color = palette.secondaryTextColor
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = "Seçili",
+                                    tint = palette.accentColor,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        if (index < LauncherThemeMode.values().size - 1) {
+                            IosDivider()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 0.5: OPACITY & BLUR CONTROLS (User request: "Opakligi düşük olsun ve blurlu olsun harika bir blur ekle")
+                IosSectionHeader(
+                    title = "ARAYÜZ OPAKLIK & BUZLU BLUR AYARI",
+                    fontFamily = fontFamily,
+                    textColor = palette.accentColor
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard(cardBg = if (palette.isDark) Color(0xFF1B1F27) else Color.White) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Arayüz Opaklığı",
+                                fontSize = 14.sp,
+                                fontFamily = fontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                color = palette.primaryTextColor
+                            )
+                            Text(
+                                text = "%${(state.surfaceOpacity * 100).toInt()} (Düşük Cam)",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.accentColor
+                            )
+                        }
+                        Slider(
+                            value = state.surfaceOpacity,
+                            onValueChange = { onChangeSurfaceOpacity(it) },
+                            valueRange = 0.15f..0.95f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = palette.accentColor,
+                                activeTrackColor = palette.accentColor
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Buzlu Cam Blur Seviyesi",
+                                fontSize = 14.sp,
+                                fontFamily = fontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                color = palette.primaryTextColor
+                            )
+                            Text(
+                                text = "${state.blurRadiusDp.toInt()} dp (Ultra Yumuşak)",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.accentColor
+                            )
+                        }
+                        Slider(
+                            value = state.blurRadiusDp,
+                            onValueChange = { onChangeBlurRadius(it) },
+                            valueRange = 0f..40f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = palette.accentColor,
+                                activeTrackColor = palette.accentColor
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -433,121 +566,6 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // SECTION 5.1: FOLDER CUSTOMIZATION (Shape, Opacity & Grid)
-                IosSectionHeader(title = "UYGULAMA KLASÖRLERİ", fontFamily = fontFamily)
-                Spacer(modifier = Modifier.height(6.dp))
-
-                IosGroupCard {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        // Folder Shape
-                        Text(
-                            text = "Klasör Köşe Şekli",
-                            fontSize = 12.sp,
-                            fontFamily = fontFamily,
-                            color = Color.White.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(bottom = 6.dp)
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            FolderShape.values().forEach { shape ->
-                                val isSelected = state.folderConfig.shape == shape
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
-                                        .clickable { onChangeFolderShape(shape) }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = shape.titleTr,
-                                        fontSize = 10.5.sp,
-                                        fontFamily = fontFamily,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Folder Opacity Slider
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Klasör Şeffaflığı / Opaklığı",
-                                fontSize = 12.sp,
-                                fontFamily = fontFamily,
-                                color = Color.White.copy(alpha = 0.6f)
-                            )
-                            Text(
-                                text = "%${(state.folderConfig.opacity * 100).toInt()}",
-                                fontSize = 12.sp,
-                                fontFamily = fontFamily,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF007AFF)
-                            )
-                        }
-
-                        Slider(
-                            value = state.folderConfig.opacity,
-                            onValueChange = onChangeFolderOpacity,
-                            valueRange = 0.20f..1.0f,
-                            steps = 15,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFF007AFF),
-                                activeTrackColor = Color(0xFF007AFF),
-                                inactiveTrackColor = Color.White.copy(alpha = 0.15f)
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Folder Inner Grid Columns
-                        Text(
-                            text = "Klasör İçi Izgara Düzeni",
-                            fontSize = 12.sp,
-                            fontFamily = fontFamily,
-                            color = Color.White.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(bottom = 6.dp)
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            FolderGridColumns.values().forEach { colOption ->
-                                val isSelected = state.folderConfig.gridColumns == colOption
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
-                                        .clickable { onChangeFolderGridColumns(colOption) }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = colOption.titleTr,
-                                        fontSize = 11.sp,
-                                        fontFamily = fontFamily,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
                 // SECTION 6: WALLPAPERS
                 IosSectionHeader(title = "DUVAR KAĞIDI PRESETLERİ", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
@@ -721,27 +739,34 @@ fun IosSettingsSheet(
 }
 
 @Composable
-private fun IosSectionHeader(title: String, fontFamily: FontFamily) {
+private fun IosSectionHeader(
+    title: String,
+    fontFamily: FontFamily,
+    textColor: Color = Color.White.copy(alpha = 0.55f)
+) {
     Text(
         text = title,
         fontSize = 11.5.sp,
         fontFamily = fontFamily,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.5.sp,
-        color = Color.White.copy(alpha = 0.55f),
+        color = textColor,
         modifier = Modifier.padding(start = 12.dp)
     )
 }
 
 @Composable
-private fun IosGroupCard(content: @Composable () -> Unit) {
+private fun IosGroupCard(
+    cardBg: Color = Color(0xFF1C1D21),
+    content: @Composable () -> Unit
+) {
     val shape = RoundedCornerShape(16.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(4.dp, shape)
             .clip(shape)
-            .background(Color(0xFF1C1D21))
+            .background(cardBg)
             .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
     ) {
         content()

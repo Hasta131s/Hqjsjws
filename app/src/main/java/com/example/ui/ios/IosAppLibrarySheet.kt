@@ -67,12 +67,12 @@ import androidx.compose.ui.window.Dialog
 import com.example.model.AppCategory
 import com.example.model.AppInfo
 import com.example.model.FolderConfig
+import com.example.ui.theme.rememberColorOsPalette
 import com.example.viewmodel.LauncherUiState
 import kotlinx.coroutines.launch
 
 /**
- * Clean Modern App Library (Uygulama Arşivi) modal sheet.
- * Fully solid matte surfaces, no glass glare, no brand references.
+ * Clean Modern App Library (Uygulama Arşivi) modal sheet with ColorOS styling.
  */
 @Composable
 fun IosAppLibrarySheet(
@@ -88,9 +88,10 @@ fun IosAppLibrarySheet(
     onUninstallApp: (String) -> Unit,
     onDismissContextMenu: () -> Unit,
     onOpenFolder: (AppCategory) -> Unit = {},
-    onOpenFolderConfig: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val palette = rememberColorOsPalette(themeMode = state.themeMode, surfaceOpacity = state.surfaceOpacity)
+
     AnimatedVisibility(
         visible = state.isDrawerOpen,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -100,7 +101,7 @@ fun IosAppLibrarySheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121214))
+                .background(if (palette.isDark) Color(0xFF0F1116) else Color(0xFFF1F5F9))
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -119,9 +120,9 @@ fun IosAppLibrarySheet(
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF222226))
-                            .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(palette.searchPillBackground)
+                            .border(0.5.dp, palette.surfaceBorderColor, RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
@@ -132,7 +133,7 @@ fun IosAppLibrarySheet(
                             Icon(
                                 imageVector = Icons.Rounded.Search,
                                 contentDescription = "Ara",
-                                tint = Color.White.copy(alpha = 0.6f),
+                                tint = palette.secondaryTextColor,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -141,7 +142,7 @@ fun IosAppLibrarySheet(
                                 if (state.searchQuery.isEmpty()) {
                                     Text(
                                         text = "Uygulama Arşivi",
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = palette.secondaryTextColor,
                                         fontSize = 15.sp,
                                         fontFamily = fontFamily
                                     )
@@ -150,11 +151,11 @@ fun IosAppLibrarySheet(
                                     value = state.searchQuery,
                                     onValueChange = onSearchChange,
                                     textStyle = TextStyle(
-                                        color = Color.White,
+                                        color = palette.primaryTextColor,
                                         fontSize = 15.sp,
                                         fontFamily = fontFamily
                                     ),
-                                    cursorBrush = SolidColor(Color(0xFF007AFF)),
+                                    cursorBrush = SolidColor(palette.accentColor),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -168,7 +169,7 @@ fun IosAppLibrarySheet(
                                     Icon(
                                         imageVector = Icons.Rounded.Clear,
                                         contentDescription = "Temizle",
-                                        tint = Color.White.copy(alpha = 0.7f),
+                                        tint = palette.secondaryTextColor,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -181,7 +182,7 @@ fun IosAppLibrarySheet(
                     // Cancel / Close
                     Text(
                         text = "Kapat",
-                        color = Color(0xFF007AFF),
+                        color = palette.accentColor,
                         fontSize = 15.sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.SemiBold,
@@ -216,25 +217,6 @@ fun IosAppLibrarySheet(
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Quick button to customize folders
-                            if (!isAlphabeticalMode) {
-                                IconButton(
-                                    onClick = onOpenFolderConfig,
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF222226))
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Tune,
-                                        contentDescription = "Klasör Ayarları",
-                                        tint = Color(0xFF007AFF),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                            }
-
                             Row(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
@@ -398,8 +380,8 @@ fun IosAppLibrarySheet(
                             IosCategoryFolderCard(
                                 title = pair.second,
                                 apps = appsInCat,
-                                folderConfig = state.folderConfig,
                                 fontFamily = fontFamily,
+                                palette = palette,
                                 onOpenFolder = { onOpenFolder(pair.first) },
                                 onAppClick = onAppClick,
                                 onAppLongClick = onAppLongClick
@@ -412,8 +394,8 @@ fun IosAppLibrarySheet(
                                 IosCategoryFolderCard(
                                     title = "Sık Kullanılanlar",
                                     apps = state.favoriteApps,
-                                    folderConfig = state.folderConfig,
                                     fontFamily = fontFamily,
+                                    palette = palette,
                                     onOpenFolder = { onOpenFolder(AppCategory.ESSENTIALS) },
                                     onAppClick = onAppClick,
                                     onAppLongClick = onAppLongClick
@@ -446,20 +428,19 @@ fun IosAppLibrarySheet(
 }
 
 /**
- * 2x2 Category Folder Card (Custom Shape, Transparency & Tap to Expand).
+ * Clean Corporate 2x2 Category Folder Card with ColorOS theme support.
  */
 @Composable
 private fun IosCategoryFolderCard(
     title: String,
     apps: List<AppInfo>,
-    folderConfig: FolderConfig,
     fontFamily: FontFamily,
+    palette: com.example.ui.theme.ColorOsPalette,
     onOpenFolder: () -> Unit,
     onAppClick: (AppInfo) -> Unit,
     onAppLongClick: (AppInfo) -> Unit
 ) {
-    val folderShape = getFolderCornerShape(folderConfig.shape)
-    val folderBgColor = Color(0xFF1E2024).copy(alpha = folderConfig.opacity)
+    val folderShape = RoundedCornerShape(22.dp)
 
     Column(
         modifier = Modifier
@@ -467,8 +448,8 @@ private fun IosCategoryFolderCard(
             .height(170.dp)
             .shadow(6.dp, folderShape)
             .clip(folderShape)
-            .background(folderBgColor)
-            .border(0.5.dp, Color.White.copy(alpha = 0.15f), folderShape)
+            .background(palette.surfaceColor)
+            .border(0.5.dp, palette.surfaceBorderColor, folderShape)
             .padding(12.dp)
     ) {
         // 2x2 Mini Icon Grid
@@ -494,7 +475,7 @@ private fun IosCategoryFolderCard(
                         onLongClick = { onAppLongClick(apps[0]) }
                     )
                 } else {
-                    EmptyFolderSlot()
+                    EmptyFolderSlot(palette)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -509,7 +490,7 @@ private fun IosCategoryFolderCard(
                         onLongClick = { onAppLongClick(apps[2]) }
                     )
                 } else {
-                    EmptyFolderSlot()
+                    EmptyFolderSlot(palette)
                 }
             }
 
@@ -530,7 +511,7 @@ private fun IosCategoryFolderCard(
                         onLongClick = { onAppLongClick(apps[1]) }
                     )
                 } else {
-                    EmptyFolderSlot()
+                    EmptyFolderSlot(palette)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -542,8 +523,8 @@ private fun IosCategoryFolderCard(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White.copy(alpha = 0.12f))
-                            .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                            .background(palette.searchPillBackground)
+                            .border(0.5.dp, palette.surfaceBorderColor, RoundedCornerShape(10.dp))
                             .clickable(onClick = onOpenFolder)
                     ) {
                         Text(
@@ -551,7 +532,7 @@ private fun IosCategoryFolderCard(
                             fontSize = 13.sp,
                             fontFamily = fontFamily,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = palette.primaryTextColor
                         )
                     }
                 } else if (apps.size == 4) {
@@ -564,7 +545,7 @@ private fun IosCategoryFolderCard(
                         onLongClick = { onAppLongClick(apps[3]) }
                     )
                 } else {
-                    EmptyFolderSlot()
+                    EmptyFolderSlot(palette)
                 }
             }
         }
@@ -584,26 +565,26 @@ private fun IosCategoryFolderCard(
                 fontSize = 12.sp,
                 fontFamily = fontFamily,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.90f)
+                color = palette.primaryTextColor
             )
             Text(
                 text = "${apps.size}",
                 fontSize = 11.sp,
                 fontFamily = fontFamily,
                 fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.50f)
+                color = palette.secondaryTextColor
             )
         }
     }
 }
 
 @Composable
-private fun EmptyFolderSlot() {
+private fun EmptyFolderSlot(palette: com.example.ui.theme.ColorOsPalette) {
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(alpha = 0.05f))
+            .background(palette.searchPillBackground.copy(alpha = 0.3f))
     )
 }
 

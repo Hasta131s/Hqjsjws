@@ -27,6 +27,7 @@ import com.example.model.OnlineWallpaper
 import com.example.model.PerformanceMode
 import com.example.model.WallpaperCategory
 import com.example.model.WeatherState
+import com.example.model.LauncherThemeMode
 import com.example.model.IndividualWidgetConfig
 import com.example.model.WidgetShape
 import com.example.model.WidgetSize
@@ -100,7 +101,10 @@ data class LauncherUiState(
     val selectedIndividualWidgetForEdit: IndividualWidgetConfig? = null,
     val folderConfig: FolderConfig = FolderConfig(),
     val expandedFolderCategory: AppCategory? = null,
-    val isFolderConfigSheetOpen: Boolean = false
+    val isFolderConfigSheetOpen: Boolean = false,
+    val themeMode: LauncherThemeMode = LauncherThemeMode.DARK_AMOLED,
+    val surfaceOpacity: Float = 0.55f, // 0.15f (translucent frosted) .. 0.95f (matte solid)
+    val blurRadiusDp: Float = 24f      // 0dp .. 40dp frosted blur
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -720,6 +724,28 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun openDefaultLauncherSettings(context: Context) {
         SystemWallpaperManager.openDefaultHomeSettings(context)
+    }
+
+    fun setThemeMode(mode: LauncherThemeMode) {
+        _uiState.value = _uiState.value.copy(
+            themeMode = mode,
+            // If user selects white theme, intelligently switch default preset to ColorOS Pearl White if it's currently OLED midnight
+            iosWallpaperPreset = if (mode == LauncherThemeMode.LIGHT_PEARL && _uiState.value.iosWallpaperPreset == IosWallpaperPreset.IOS_OLED_MIDNIGHT) {
+                IosWallpaperPreset.COLOR_OS_PEARL_WHITE
+            } else if (mode == LauncherThemeMode.DARK_AMOLED && _uiState.value.iosWallpaperPreset == IosWallpaperPreset.COLOR_OS_PEARL_WHITE) {
+                IosWallpaperPreset.IOS_OLED_MIDNIGHT
+            } else {
+                _uiState.value.iosWallpaperPreset
+            }
+        )
+    }
+
+    fun setSurfaceOpacity(opacity: Float) {
+        _uiState.value = _uiState.value.copy(surfaceOpacity = opacity.coerceIn(0.10f, 0.95f))
+    }
+
+    fun setBlurRadiusDp(radius: Float) {
+        _uiState.value = _uiState.value.copy(blurRadiusDp = radius.coerceIn(0f, 40f))
     }
 
     fun uninstallApp(packageName: String) {

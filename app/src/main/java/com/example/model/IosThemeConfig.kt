@@ -3,7 +3,16 @@ package com.example.model
 import androidx.compose.ui.graphics.Color
 
 /**
- * Modern Minimalist Theme & Wallpaper presets (No branded names).
+ * ColorOS & Minimalist UI Theme Mode (Siyah / Beyaz / Sistem).
+ */
+enum class LauncherThemeMode(val titleTr: String, val subtitleTr: String) {
+    DARK_AMOLED("Koyu (Siyah OLED)", "Derin siyah, düşük opaklık ve yüksek kontrast"),
+    LIGHT_PEARL("Açık (Beyaz İnci)", "Ferah beyaz, ipeksi buzlu cam ve berrak görünüm"),
+    SYSTEM_AUTO("Sistem Otomatik", "Cihaz temasına göre otomatik siyah/beyaz")
+}
+
+/**
+ * Modern Minimalist & ColorOS Theme Wallpaper presets.
  */
 enum class IosWallpaperPreset(
     val titleTr: String,
@@ -13,6 +22,30 @@ enum class IosWallpaperPreset(
     val bottomColor: Color,
     val accentColor: Color
 ) {
+    COLOR_OS_AQUAMORPHIC(
+        "ColorOS Akua",
+        "Akışkan Su & Derin Cam",
+        Color(0xFF021B2B),
+        Color(0xFF0A3A54),
+        Color(0xFF03101C),
+        Color(0xFF00D2FF)
+    ),
+    COLOR_OS_PEARL_WHITE(
+        "ColorOS Saf Beyaz",
+        "İpeksi Buzlu Beyaz & İnci",
+        Color(0xFFF0F4F8),
+        Color(0xFFE2E8F0),
+        Color(0xFFD6DFE8),
+        Color(0xFF007AFF)
+    ),
+    IOS_OLED_MIDNIGHT(
+        "Saf Siyah OLED",
+        "Ultra Minimalist Siyah",
+        Color(0xFF000000),
+        Color(0xFF08090C),
+        Color(0xFF000000),
+        Color(0xFF38BDF8)
+    ),
     IOS_18_NEBULA(
         "Kozmik İpek",
         "Zengin Mor Işıltı",
@@ -52,14 +85,6 @@ enum class IosWallpaperPreset(
         Color(0xFF0A1E36),
         Color(0xFF000207),
         Color(0xFF80D8FF)
-    ),
-    IOS_OLED_MIDNIGHT(
-        "Saf Gece OLED",
-        "Ultra Minimalist Saf Siyah",
-        Color(0xFF000000),
-        Color(0xFF0A0C10),
-        Color(0xFF000000),
-        Color(0xFFAAAAAA)
     )
 }
 

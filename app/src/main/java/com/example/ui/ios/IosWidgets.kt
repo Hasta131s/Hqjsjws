@@ -38,6 +38,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import com.example.model.LauncherThemeMode
+import com.example.ui.theme.rememberColorOsPalette
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -357,20 +359,23 @@ fun IosBatteryWidget(
 }
 
 /**
- * Modern Search Pill.
+ * Modern Search Pill with ColorOS theme and frosted glass support.
  */
 @Composable
 fun IosSearchPill(
     fontFamily: FontFamily,
     modifier: Modifier = Modifier,
+    themeMode: LauncherThemeMode = LauncherThemeMode.DARK_AMOLED,
+    surfaceOpacity: Float = 0.55f,
     onClick: () -> Unit = {}
 ) {
+    val palette = rememberColorOsPalette(themeMode = themeMode, surfaceOpacity = surfaceOpacity)
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF1E2024))
-            .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+            .background(palette.searchPillBackground)
+            .border(0.5.dp, palette.surfaceBorderColor, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp)
     ) {
@@ -378,7 +383,7 @@ fun IosSearchPill(
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = "Ara",
-                tint = Color.White.copy(alpha = 0.85f),
+                tint = palette.primaryTextColor.copy(alpha = 0.85f),
                 modifier = Modifier.size(13.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -387,7 +392,7 @@ fun IosSearchPill(
                 fontSize = 12.sp,
                 fontFamily = fontFamily,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.90f)
+                color = palette.primaryTextColor.copy(alpha = 0.90f)
             )
         }
     }

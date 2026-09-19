@@ -74,6 +74,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.example.model.AppInfo
 import com.example.model.IndividualWidgetConfig
 import com.example.model.WidgetSize
@@ -85,7 +88,6 @@ import com.example.ui.ios.CalendarWidgetContent
 import com.example.ui.ios.ClockWidgetContent
 import com.example.ui.ios.ControlsWidgetContent
 import com.example.ui.ios.ExpandedFolderDialog
-import com.example.ui.ios.FolderConfigSheet
 import com.example.ui.ios.HomeActionMenuSheet
 import com.example.ui.ios.IndividualWidgetEditDialog
 import com.example.ui.ios.IndividualWidgetWrapper
@@ -266,11 +268,12 @@ fun HomeScreen(
                 )
             }
 
-            // Customizable Dynamic Widgets Row (+6 Widgets with individual sizes & shapes + Drag & Drop Reordering)
+            // Customizable Dynamic Widgets Row (+6 Widgets with individual sizes & shapes + Universal Drag & Drop Reordering)
             val visibleWidgets = uiState.homeWidgets.filter { it.isVisible }
             if (visibleWidgets.isNotEmpty()) {
                 var draggedWidgetIndex by remember { mutableIntStateOf(-1) }
                 var widgetDragOffsetX by remember { mutableFloatStateOf(0f) }
+                val widgetBoundsMap = remember { mutableMapOf<Int, androidx.compose.ui.geometry.Rect>() }
 
                 LazyRow(
                     modifier = Modifier
@@ -286,61 +289,67 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .animateItemPlacement()
+                                .onGloballyPositioned { layoutCoordinates ->
+                                    if (!isWidgetBeingDragged) {
+                                        widgetBoundsMap[wIndex] = layoutCoordinates.boundsInWindow()
+                                    }
+                                }
                                 .rotate(if (uiState.isEditMode && !isWidgetBeingDragged) jiggleRotation else 0f)
                                 .offset {
                                     if (isWidgetBeingDragged) IntOffset(widgetDragOffsetX.roundToInt(), 0)
                                     else IntOffset.Zero
                                 }
-                                .zIndex(if (isWidgetBeingDragged) 10f else 1f)
+                                .zIndex(if (isWidgetBeingDragged) 100f else 1f)
                                 .scale(if (isWidgetBeingDragged) 1.08f else 1.0f)
-                                .pointerInput(uiState.isEditMode) {
-                                    if (uiState.isEditMode) {
-                                        detectDragGesturesAfterLongPress(
-                                            onDragStart = {
-                                                draggedWidgetIndex = wIndex
-                                                widgetDragOffsetX = 0f
-                                            },
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                widgetDragOffsetX += dragAmount.x
-                                                val thresholdPx = 90.dp.toPx()
+                                .pointerInput(Unit) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggedWidgetIndex = wIndex
+                                            widgetDragOffsetX = 0f
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            widgetDragOffsetX += dragAmount.x
 
-                                                if (widgetDragOffsetX > thresholdPx && draggedWidgetIndex < visibleWidgets.size - 1) {
-                                                    val target = draggedWidgetIndex + 1
-                                                    // Map visible indices back to homeWidgets indices in ViewModel
-                                                    val fromOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[draggedWidgetIndex].type }
-                                                    val toOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[target].type }
-                                                    if (fromOriginal != -1 && toOriginal != -1) {
-                                                        viewModel.reorderWidgets(fromOriginal, toOriginal)
+                                            // Real-time target collision calculation
+                                            val currentBounds = widgetBoundsMap[draggedWidgetIndex]
+                                            if (currentBounds != null) {
+                                                val currentCenter = Offset(
+                                                    x = currentBounds.center.x + widgetDragOffsetX,
+                                                    y = currentBounds.center.y
+                                                )
+
+                                                for ((targetIdx, bounds) in widgetBoundsMap) {
+                                                    if (targetIdx != draggedWidgetIndex && bounds.contains(currentCenter)) {
+                                                        val fromOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[draggedWidgetIndex].type }
+                                                        val toOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[targetIdx].type }
+                                                        if (fromOriginal != -1 && toOriginal != -1) {
+                                                            viewModel.reorderWidgets(fromOriginal, toOriginal)
+                                                        }
+                                                        draggedWidgetIndex = targetIdx
+                                                        widgetDragOffsetX = 0f
+                                                        break
                                                     }
-                                                    draggedWidgetIndex = target
-                                                    widgetDragOffsetX = 0f
-                                                } else if (widgetDragOffsetX < -thresholdPx && draggedWidgetIndex > 0) {
-                                                    val target = draggedWidgetIndex - 1
-                                                    val fromOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[draggedWidgetIndex].type }
-                                                    val toOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[target].type }
-                                                    if (fromOriginal != -1 && toOriginal != -1) {
-                                                        viewModel.reorderWidgets(fromOriginal, toOriginal)
-                                                    }
-                                                    draggedWidgetIndex = target
-                                                    widgetDragOffsetX = 0f
                                                 }
-                                            },
-                                            onDragEnd = {
-                                                draggedWidgetIndex = -1
-                                                widgetDragOffsetX = 0f
-                                            },
-                                            onDragCancel = {
-                                                draggedWidgetIndex = -1
-                                                widgetDragOffsetX = 0f
                                             }
-                                        )
-                                    }
+                                        },
+                                        onDragEnd = {
+                                            draggedWidgetIndex = -1
+                                            widgetDragOffsetX = 0f
+                                        },
+                                        onDragCancel = {
+                                            draggedWidgetIndex = -1
+                                            widgetDragOffsetX = 0f
+                                        }
+                                    )
                                 }
                         ) {
                             IndividualWidgetWrapper(
                                 config = widgetConfig,
                                 fontFamily = activeFontFamily,
+                                themeMode = uiState.themeMode,
+                                surfaceOpacity = uiState.surfaceOpacity,
+                                blurRadiusDp = uiState.blurRadiusDp,
                                 onClick = {
                                     if (uiState.isEditMode) {
                                         viewModel.setEditMode(false)
@@ -354,7 +363,6 @@ fun HomeScreen(
                                     }
                                 },
                                 onLongClick = {
-                                    viewModel.setEditMode(true)
                                     viewModel.openIndividualWidgetEditDialog(widgetConfig)
                                 }
                             ) {
@@ -400,17 +408,16 @@ fun HomeScreen(
                                 }
                             }
 
-                            // Edit Mode Badges: Remove / Configure & Quick move
+                            // Edit Mode Badges: Remove
                             if (uiState.isEditMode) {
-                                // Red minus badge on top-left to delete/remove widget
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .align(Alignment.TopStart)
                                         .offset(x = (-4).dp, y = (-4).dp)
-                                        .size(24.dp)
+                                        .size(22.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFFFF3B30))
+                                        .background(Color(0xFFE53935))
                                         .border(1.5.dp, Color.White, CircleShape)
                                         .clickable {
                                             viewModel.removeHomeWidget(widgetConfig.type)
@@ -420,56 +427,8 @@ fun HomeScreen(
                                         imageVector = Icons.Rounded.Remove,
                                         contentDescription = "Widgetı Kaldır",
                                         tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
-                                }
-
-                                // Quick reorder directional arrows (Left & Right)
-                                Row(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .offset(y = 6.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.Black.copy(alpha = 0.85f))
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (wIndex > 0) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.ArrowBack,
-                                            contentDescription = "Sola Taşı",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .size(16.dp)
-                                                .clickable {
-                                                    val fromOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex].type }
-                                                    val toOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex - 1].type }
-                                                    if (fromOrig != -1 && toOrig != -1) {
-                                                        viewModel.reorderWidgets(fromOrig, toOrig)
-                                                    }
-                                                }
-                                        )
-                                    }
-                                    if (wIndex > 0 && wIndex < visibleWidgets.size - 1) {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                    }
-                                    if (wIndex < visibleWidgets.size - 1) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.ArrowForward,
-                                            contentDescription = "Sağa Taşı",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .size(16.dp)
-                                                .clickable {
-                                                    val fromOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex].type }
-                                                    val toOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex + 1].type }
-                                                    if (fromOrig != -1 && toOrig != -1) {
-                                                        viewModel.reorderWidgets(fromOrig, toOrig)
-                                                    }
-                                                }
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -477,7 +436,7 @@ fun HomeScreen(
                 }
             }
 
-            // App Grid with customizable columns (3, 4, or 5), drag & drop reordering, and delete/remove
+            // App Grid with customizable columns (3, 4, or 5) and Universal Fluid Drag & Drop Reordering
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -492,11 +451,12 @@ fun HomeScreen(
                 var draggedAppIndex by remember { mutableIntStateOf(-1) }
                 var dragOffsetX by remember { mutableFloatStateOf(0f) }
                 var dragOffsetY by remember { mutableFloatStateOf(0f) }
+                val itemBoundsMap = remember { mutableMapOf<Int, androidx.compose.ui.geometry.Rect>() }
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(uiState.gridColumns),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -507,65 +467,60 @@ fun HomeScreen(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .animateItemPlacement()
+                                .onGloballyPositioned { layoutCoordinates ->
+                                    if (!isBeingDragged) {
+                                        itemBoundsMap[index] = layoutCoordinates.boundsInWindow()
+                                    }
+                                }
                                 .rotate(if (uiState.isEditMode && !isBeingDragged) jiggleRotation else 0f)
                                 .offset {
                                     if (isBeingDragged) IntOffset(dragOffsetX.roundToInt(), dragOffsetY.roundToInt())
                                     else IntOffset.Zero
                                 }
-                                .zIndex(if (isBeingDragged) 10f else 1f)
-                                .scale(if (isBeingDragged) 1.12f else 1.0f)
-                                .pointerInput(uiState.isEditMode) {
-                                    if (uiState.isEditMode) {
-                                        detectDragGesturesAfterLongPress(
-                                            onDragStart = {
-                                                draggedAppIndex = index
-                                                dragOffsetX = 0f
-                                                dragOffsetY = 0f
-                                            },
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                dragOffsetX += dragAmount.x
-                                                dragOffsetY += dragAmount.y
+                                .zIndex(if (isBeingDragged) 100f else 1f)
+                                .scale(if (isBeingDragged) 1.15f else 1.0f)
+                                .pointerInput(Unit) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggedAppIndex = index
+                                            dragOffsetX = 0f
+                                            dragOffsetY = 0f
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetX += dragAmount.x
+                                            dragOffsetY += dragAmount.y
 
-                                                // Dynamic swap when dragged horizontally or vertically
-                                                val colWidth = 90.dp.toPx()
-                                                val rowHeight = 90.dp.toPx()
-                                                val cols = uiState.gridColumns
+                                            // Real-time target hit detection based on finger position
+                                            val currentBounds = itemBoundsMap[draggedAppIndex]
+                                            if (currentBounds != null) {
+                                                val currentCenter = Offset(
+                                                    x = currentBounds.center.x + dragOffsetX,
+                                                    y = currentBounds.center.y + dragOffsetY
+                                                )
 
-                                                if (dragOffsetX > colWidth && (draggedAppIndex % cols) < cols - 1) {
-                                                    val target = (draggedAppIndex + 1).coerceAtMost(gridApps.size - 1)
-                                                    viewModel.reorderApps(draggedAppIndex, target)
-                                                    draggedAppIndex = target
-                                                    dragOffsetX = 0f
-                                                } else if (dragOffsetX < -colWidth && (draggedAppIndex % cols) > 0) {
-                                                    val target = (draggedAppIndex - 1).coerceAtLeast(0)
-                                                    viewModel.reorderApps(draggedAppIndex, target)
-                                                    draggedAppIndex = target
-                                                    dragOffsetX = 0f
-                                                } else if (dragOffsetY > rowHeight && draggedAppIndex + cols < gridApps.size) {
-                                                    val target = draggedAppIndex + cols
-                                                    viewModel.reorderApps(draggedAppIndex, target)
-                                                    draggedAppIndex = target
-                                                    dragOffsetY = 0f
-                                                } else if (dragOffsetY < -rowHeight && draggedAppIndex - cols >= 0) {
-                                                    val target = draggedAppIndex - cols
-                                                    viewModel.reorderApps(draggedAppIndex, target)
-                                                    draggedAppIndex = target
-                                                    dragOffsetY = 0f
+                                                for ((targetIdx, bounds) in itemBoundsMap) {
+                                                    if (targetIdx != draggedAppIndex && bounds.contains(currentCenter)) {
+                                                        viewModel.reorderApps(draggedAppIndex, targetIdx)
+                                                        draggedAppIndex = targetIdx
+                                                        dragOffsetX = 0f
+                                                        dragOffsetY = 0f
+                                                        break
+                                                    }
                                                 }
-                                            },
-                                            onDragEnd = {
-                                                draggedAppIndex = -1
-                                                dragOffsetX = 0f
-                                                dragOffsetY = 0f
-                                            },
-                                            onDragCancel = {
-                                                draggedAppIndex = -1
-                                                dragOffsetX = 0f
-                                                dragOffsetY = 0f
                                             }
-                                        )
-                                    }
+                                        },
+                                        onDragEnd = {
+                                            draggedAppIndex = -1
+                                            dragOffsetX = 0f
+                                            dragOffsetY = 0f
+                                        },
+                                        onDragCancel = {
+                                            draggedAppIndex = -1
+                                            dragOffsetX = 0f
+                                            dragOffsetY = 0f
+                                        }
+                                    )
                                 }
                         ) {
                             IosAppIcon(
@@ -581,21 +536,20 @@ fun HomeScreen(
                                     }
                                 },
                                 onLongClick = {
-                                    viewModel.setEditMode(true)
                                     viewModel.openContextMenu(app)
                                 }
                             )
 
-                            // Edit Mode: Red minus (-) circle badge to Remove from Home or Uninstall Completely
+                            // Edit Mode: Subtle clean remove badge
                             if (uiState.isEditMode) {
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .align(Alignment.TopStart)
                                         .offset(x = 6.dp, y = (-2).dp)
-                                        .size(24.dp)
+                                        .size(22.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFFFF3B30))
+                                        .background(Color(0xFFE53935))
                                         .border(1.5.dp, Color.White, CircleShape)
                                         .clickable {
                                             viewModel.openAppRemoveOrDeleteDialog(app)
@@ -605,41 +559,8 @@ fun HomeScreen(
                                         imageVector = Icons.Rounded.Remove,
                                         contentDescription = "Uygulamayı Kaldır veya Sil",
                                         tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
-                                }
-
-                                // Quick reorder directional arrows
-                                Row(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .offset(y = 4.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.Black.copy(alpha = 0.80f))
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (index > 0) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.ArrowBack,
-                                            contentDescription = "Sola Taşı",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .size(15.dp)
-                                                .clickable { viewModel.reorderApps(index, index - 1) }
-                                        )
-                                    }
-                                    if (index < gridApps.size - 1) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.ArrowForward,
-                                            contentDescription = "Sağa Taşı",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .size(15.dp)
-                                                .clickable { viewModel.reorderApps(index, index + 1) }
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -667,6 +588,8 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(2.dp))
                     IosSearchPill(
                         fontFamily = activeFontFamily,
+                        themeMode = uiState.themeMode,
+                        surfaceOpacity = uiState.surfaceOpacity,
                         onClick = { viewModel.openDrawer() }
                     )
                 }
@@ -685,6 +608,9 @@ fun HomeScreen(
                     dockApps = uiState.dockApps,
                     dockLimit = uiState.dockAppLimit,
                     fontFamily = activeFontFamily,
+                    themeMode = uiState.themeMode,
+                    surfaceOpacity = uiState.surfaceOpacity,
+                    blurRadiusDp = uiState.blurRadiusDp,
                     onAppClick = { viewModel.launchApp(it) },
                     onAppLongClick = { viewModel.openContextMenu(it) },
                     onOpenAppLibrary = { viewModel.openDrawer() }
@@ -769,7 +695,7 @@ fun HomeScreen(
             )
         }
 
-        // 7. App Library Sheet with Favorite & Dock toggling + uninstall + folder customization
+        // 7. App Library Sheet with Favorite & Dock toggling + uninstall
         IosAppLibrarySheet(
             state = uiState,
             fontFamily = activeFontFamily,
@@ -782,11 +708,10 @@ fun HomeScreen(
             onOpenAppDetails = { viewModel.openAppDetails(it) },
             onUninstallApp = { viewModel.uninstallApp(it) },
             onDismissContextMenu = { viewModel.closeContextMenu() },
-            onOpenFolder = { viewModel.openFolder(it) },
-            onOpenFolderConfig = { viewModel.openFolderConfigSheet() }
+            onOpenFolder = { viewModel.openFolder(it) }
         )
 
-        // 7.1 Expanded Category Folder Dialog (with custom shapes, opacity, and grid columns)
+        // 7.1 Expanded Category Folder Dialog
         uiState.expandedFolderCategory?.let { category ->
             val appsInCat = uiState.allApps.filter { it.category == category }
             val categoryTitle = when (category) {
@@ -802,27 +727,12 @@ fun HomeScreen(
                 category = category,
                 categoryTitle = categoryTitle,
                 apps = appsInCat,
-                folderConfig = uiState.folderConfig,
                 fontFamily = activeFontFamily,
                 onDismiss = { viewModel.closeFolder() },
                 onAppClick = { viewModel.launchApp(it) },
-                onAppLongClick = { viewModel.openContextMenu(it) },
-                onOpenFolderSettings = {
-                    viewModel.openFolderConfigSheet()
-                }
+                onAppLongClick = { viewModel.openContextMenu(it) }
             )
         }
-
-        // 7.2 Folder Customization Sheet (Shape, Opacity & Grid layout)
-        FolderConfigSheet(
-            isOpen = uiState.isFolderConfigSheetOpen,
-            folderConfig = uiState.folderConfig,
-            fontFamily = activeFontFamily,
-            onClose = { viewModel.closeFolderConfigSheet() },
-            onShapeChange = { viewModel.setFolderShape(it) },
-            onOpacityChange = { viewModel.setFolderOpacity(it) },
-            onGridColumnsChange = { viewModel.setFolderGridColumns(it) }
-        )
 
         // 8. Settings & Customization Sheet
         IosSettingsSheet(
@@ -830,6 +740,9 @@ fun HomeScreen(
             fontFamily = activeFontFamily,
             context = context,
             onClose = { viewModel.closeCustomizeSheet() },
+            onSelectThemeMode = { viewModel.setThemeMode(it) },
+            onChangeSurfaceOpacity = { viewModel.setSurfaceOpacity(it) },
+            onChangeBlurRadius = { viewModel.setBlurRadiusDp(it) },
             onSelectIosWallpaper = { viewModel.setIosWallpaperPreset(it) },
             onOpenOnlineWallpapers = { viewModel.openOnlineWallpaperSheet() },
             onPickGalleryWallpaper = { uri ->
@@ -842,10 +755,6 @@ fun HomeScreen(
             onChangeWidgetShape = { viewModel.setWidgetShape(it) },
             onChangeDockLimit = { viewModel.setDockAppLimit(it) },
             onChangeGridColumns = { viewModel.setGridColumns(it) },
-            onChangeFolderShape = { viewModel.setFolderShape(it) },
-            onChangeFolderOpacity = { viewModel.setFolderOpacity(it) },
-            onChangeFolderGridColumns = { viewModel.setFolderGridColumns(it) },
-            onOpenFolderConfig = { viewModel.openFolderConfigSheet() },
             onToggleClock = { viewModel.toggleClockWidget() },
             onToggleWeather = { viewModel.toggleWeatherWidget() },
             onToggleBattery = { viewModel.toggleBatteryWidget() },
