@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.IosWallpaperPreset
+import com.example.model.WidgetShape
 import com.example.ui.theme.ClockFontOption
 import com.example.ui.theme.LauncherFont
 import com.example.ui.theme.getClockFontFamily
@@ -75,7 +76,7 @@ import com.example.viewmodel.LauncherUiState
  * Features:
  * - 20 Selectable Clock Fonts
  * - Clock Size Slider
- * - Widget Scale Selector
+ * - Widget Scale & Shape Selector
  * - Dock App Limit Selector (Default 2 for ultra clean dock)
  * - Grid Columns Selector
  * - Solid Matte Cards (No glass glare, no brand mentions)
@@ -93,6 +94,7 @@ fun IosSettingsSheet(
     onSelectClockFont: (ClockFontOption) -> Unit,
     onChangeClockSize: (Float) -> Unit,
     onChangeWidgetScale: (Float) -> Unit,
+    onChangeWidgetShape: (WidgetShape) -> Unit = {},
     onChangeDockLimit: (Int) -> Unit,
     onChangeGridColumns: (Int) -> Unit,
     onToggleClock: () -> Unit,
@@ -264,39 +266,81 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // SECTION 3: WIDGET SCALE CUSTOMIZATION
-                IosSectionHeader(title = "WİDGET BOYUTLARI", fontFamily = fontFamily)
+                // SECTION 3: WIDGET SCALE & SHAPE CUSTOMIZATION
+                IosSectionHeader(title = "WİDGET BOYUTLARI VE ŞEKLİ", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
 
                 IosGroupCard {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(
-                            0.85f to "Kompakt (%85)",
-                            1.00f to "Standart (%100)",
-                            1.15f to "Geniş (%115)"
-                        ).forEach { (scaleVal, label) ->
-                            val isSelected = kotlin.math.abs(state.widgetScale - scaleVal) < 0.05f
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
-                                    .clickable { onChangeWidgetScale(scaleVal) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    fontSize = 12.sp,
-                                    fontFamily = fontFamily,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = Color.White
-                                )
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "Boyut",
+                            fontSize = 12.sp,
+                            fontFamily = fontFamily,
+                            color = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                0.85f to "Kompakt (%85)",
+                                1.00f to "Standart (%100)",
+                                1.15f to "Geniş (%115)"
+                            ).forEach { (scaleVal, label) ->
+                                val isSelected = kotlin.math.abs(state.widgetScale - scaleVal) < 0.05f
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                        .clickable { onChangeWidgetScale(scaleVal) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 12.sp,
+                                        fontFamily = fontFamily,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Bileşen Köşe Şekli",
+                            fontSize = 12.sp,
+                            fontFamily = fontFamily,
+                            color = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            WidgetShape.values().forEach { shape ->
+                                val isSelected = state.widgetShape == shape
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                        .clickable { onChangeWidgetShape(shape) }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = shape.titleTr,
+                                        fontSize = 11.sp,
+                                        fontFamily = fontFamily,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }

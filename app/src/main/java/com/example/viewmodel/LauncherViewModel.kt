@@ -24,6 +24,7 @@ import com.example.model.OnlineWallpaper
 import com.example.model.PerformanceMode
 import com.example.model.WallpaperCategory
 import com.example.model.WeatherState
+import com.example.model.WidgetShape
 import com.example.ui.theme.ClockFontOption
 import com.example.ui.theme.LauncherFont
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,9 +76,12 @@ data class LauncherUiState(
     val iosWallpaperPreset: IosWallpaperPreset = IosWallpaperPreset.IOS_18_NEBULA,
     val clockSizeSp: Float = 68f,
     val widgetScale: Float = 1.0f,
+    val widgetShape: WidgetShape = WidgetShape.ROUNDED_SQUIRCLE,
     val clockFontOption: ClockFontOption = ClockFontOption.OUTFIT_BOLD,
     val dockAppLimit: Int = 2,
-    val gridColumns: Int = 4
+    val gridColumns: Int = 4,
+    val isEditMode: Boolean = false,
+    val selectedWidgetForEdit: String? = null
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -209,6 +213,66 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setWidgetScale(scale: Float) {
         _uiState.value = _uiState.value.copy(widgetScale = scale.coerceIn(0.8f, 1.25f))
+    }
+
+    fun setWidgetShape(shape: WidgetShape) {
+        _uiState.value = _uiState.value.copy(widgetShape = shape)
+    }
+
+    fun openWidgetEditDialog(widgetKey: String) {
+        _uiState.value = _uiState.value.copy(selectedWidgetForEdit = widgetKey)
+    }
+
+    fun closeWidgetEditDialog() {
+        _uiState.value = _uiState.value.copy(selectedWidgetForEdit = null)
+    }
+
+    fun toggleEditMode() {
+        _uiState.value = _uiState.value.copy(isEditMode = !_uiState.value.isEditMode)
+    }
+
+    fun setEditMode(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isEditMode = enabled)
+    }
+
+    fun reorderApps(fromIndex: Int, toIndex: Int) {
+        val currentList = if (_uiState.value.showFavoritesShelf && _uiState.value.favoriteApps.isNotEmpty()) {
+            _uiState.value.favoriteApps.toMutableList()
+        } else {
+            _uiState.value.allApps.toMutableList()
+        }
+
+        if (fromIndex in currentList.indices && toIndex in currentList.indices && fromIndex != toIndex) {
+            val movedItem = currentList.removeAt(fromIndex)
+            currentList.add(toIndex, movedItem)
+
+            if (_uiState.value.showFavoritesShelf && _uiState.value.favoriteApps.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(favoriteApps = currentList)
+            } else {
+                _uiState.value = _uiState.value.copy(allApps = currentList)
+            }
+        }
+    }
+
+    fun moveAppToPosition(app: AppInfo, targetIndex: Int) {
+        val currentList = if (_uiState.value.showFavoritesShelf && _uiState.value.favoriteApps.isNotEmpty()) {
+            _uiState.value.favoriteApps.toMutableList()
+        } else {
+            _uiState.value.allApps.toMutableList()
+        }
+
+        val currentIndex = currentList.indexOfFirst { it.packageName == app.packageName }
+        if (currentIndex != -1) {
+            val validTarget = targetIndex.coerceIn(0, currentList.size - 1)
+            val moved = currentList.removeAt(currentIndex)
+            currentList.add(validTarget, moved)
+
+            if (_uiState.value.showFavoritesShelf && _uiState.value.favoriteApps.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(favoriteApps = currentList)
+            } else {
+                _uiState.value = _uiState.value.copy(allApps = currentList)
+            }
+        }
     }
 
     fun setClockFontOption(option: ClockFontOption) {

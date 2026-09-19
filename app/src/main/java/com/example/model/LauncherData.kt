@@ -28,6 +28,16 @@ enum class AppCategory(val titleTr: String) {
 }
 
 /**
+ * Geometric shape for Home widgets (Weather, Battery, Clock).
+ */
+enum class WidgetShape(val titleTr: String, val cornerRadiusPercent: Float) {
+    ROUNDED_SQUIRCLE("Köşeli Yumuşak", 22f),
+    PILL("Kapsül", 36f),
+    SHARP_MODERN("Keskin Modern", 10f),
+    CIRCLE("Dairesel / Oval", 50f)
+}
+
+/**
  * Geometric shape for app icons with liquid styling.
  */
 enum class IconShape(val titleTr: String) {

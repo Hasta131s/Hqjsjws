@@ -125,30 +125,74 @@ object SystemWallpaperManager {
     }
 
     /**
-     * Prompts the user to set Tvnah Launcher as the default Android home app.
+     * Prompts the user to set this launcher as the default Android home app.
+     * Uses RoleManager for Android 10+ (Q+), Home settings intent, or chooser intent fallback.
      */
     fun openDefaultHomeSettings(context: Context) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val appContext = context.applicationContext ?: context
+
+        // 1. Try RoleManager (Android 10+ / API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
                 val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
                 if (roleManager != null && roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) {
-                    val intent = roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                    return
+                    if (!roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
+                        val intent = roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                        return
+                    } else {
+                        Toast.makeText(context, "Zaten varsayılan başlatıcı olarak ayarlı.", Toast.LENGTH_SHORT).show()
+                        return
+                    }
                 }
+            } catch (e: Exception) {
+                // RoleManager fallback
             }
+        }
+
+        // 2. Direct Settings ACTION_HOME_SETTINGS
+        try {
             val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
+            return
         } catch (e: Exception) {
-            try {
+            // Fallback
+        }
+
+        // 3. Fallback: ACTION_MANAGE_DEFAULT_APPS_SETTINGS
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
-            } catch (ex: Exception) {
+                return
+            }
+        } catch (e: Exception) {
+            // Fallback
+        }
+
+        // 4. Fallback: Launch HOME chooser dialog via fake home intent
+        try {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val chooser = Intent.createChooser(homeIntent, "Varsayılan Başlatıcıyı Seç").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (ex: Exception) {
+            try {
+                val intent = Intent(Settings.ACTION_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e2: Exception) {
                 Toast.makeText(context, "Varsayılan uygulama ayarları açılamadı", Toast.LENGTH_SHORT).show()
             }
         }
