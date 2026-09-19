@@ -1,5 +1,7 @@
 package com.example.ui.ios
 
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -26,16 +28,16 @@ import com.example.model.IosWallpaperPreset
 import kotlin.math.sin
 
 /**
- * Authentic Apple iOS 18 & 17 Wallpaper Engine.
- * Features elegant Apple silk ribbons, ambient atmospheric depth, and vibrant OLED contrasts.
- * Completely free of water ripples or liquid caustics.
+ * Authentic Apple iOS 18 & ColorOS Minimalist Wallpaper Engine.
+ * Supports dynamic frosted glass blur, Silk gradients, Gallery photos, and rhythm pulses.
  */
 @Composable
 fun IosWallpaper(
     preset: IosWallpaperPreset,
     modifier: Modifier = Modifier,
     customImageUri: String? = null,
-    isMusicReactive: Boolean = false
+    isMusicReactive: Boolean = false,
+    blurRadius: Float = 0f
 ) {
     val rhythmPulse by MusicVisualizerManager.rhythmPulse.collectAsState()
     val activePulse = if (isMusicReactive) rhythmPulse else 1.0f
@@ -51,7 +53,9 @@ fun IosWallpaper(
         label = "SilkRibbonWave"
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
+    val blurMod = if (blurRadius > 0.5f) Modifier.blur(blurRadius.coerceIn(1f, 50f).dp) else Modifier
+
+    Box(modifier = modifier.fillMaxSize().then(blurMod)) {
         // If user picked a custom photo or online wallpaper, render it
         if (!customImageUri.isNullOrEmpty()) {
             AsyncImage(

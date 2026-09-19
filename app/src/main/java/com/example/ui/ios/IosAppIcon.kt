@@ -54,6 +54,7 @@ fun IosAppIcon(
     iconSize: Dp = 60.dp,
     fontFamily: FontFamily = FontFamily.Default,
     showLabel: Boolean = true,
+    enableClick: Boolean = true,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {}
 ) {
@@ -62,7 +63,7 @@ fun IosAppIcon(
 
     // iOS Spring tap bounce
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.88f else 1.0f,
+        targetValue = if (isPressed && enableClick) 0.88f else 1.0f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "ios_icon_spring"
     )
@@ -71,17 +72,23 @@ fun IosAppIcon(
     val cornerRadius = iconSize * 0.225f
     val iconShape = RoundedCornerShape(cornerRadius)
 
+    val clickableModifier = if (enableClick) {
+        Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
+    } else {
+        Modifier
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .width(iconSize + 16.dp)
             .scale(scale)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
+            .then(clickableModifier)
             .testTag("ios_app_icon_${app.packageName}")
     ) {
         // iOS Squircle Icon Container
@@ -90,10 +97,10 @@ fun IosAppIcon(
             modifier = Modifier
                 .size(iconSize)
                 .shadow(
-                    elevation = 6.dp,
+                    elevation = 4.dp,
                     shape = iconShape,
-                    ambientColor = Color.Black.copy(alpha = 0.5f),
-                    spotColor = Color.Black.copy(alpha = 0.5f)
+                    ambientColor = Color.Black.copy(alpha = 0.35f),
+                    spotColor = Color.Black.copy(alpha = 0.35f)
                 )
                 .clip(iconShape)
                 .background(
@@ -130,10 +137,10 @@ fun IosAppIcon(
         }
 
         if (showLabel) {
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = app.label,
-                fontSize = 11.5.sp,
+                fontSize = 11.sp,
                 fontFamily = fontFamily,
                 fontWeight = FontWeight.Medium,
                 color = Color.White,
@@ -142,9 +149,9 @@ fun IosAppIcon(
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(
                     shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.85f),
-                        offset = Offset(0f, 2f),
-                        blurRadius = 4f
+                        color = Color.Black.copy(alpha = 0.50f),
+                        offset = Offset(0f, 1.5f),
+                        blurRadius = 3f
                     )
                 )
             )

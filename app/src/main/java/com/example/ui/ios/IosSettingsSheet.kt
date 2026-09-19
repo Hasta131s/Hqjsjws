@@ -154,27 +154,30 @@ fun IosSettingsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "ColorOS Arayüzü & Ayarlar",
-                        fontSize = 22.sp,
+                        text = "Arayüz & Özelleştirme",
+                        fontSize = 20.sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.Bold,
-                        color = palette.primaryTextColor
+                        color = palette.primaryTextColor,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 12.dp)
                     )
 
-                    // Done Button
+                    // Done Button (Never squished)
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(Color(0xFF007AFF))
                             .clickable(onClick = onClose)
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = "Bitti",
                             fontSize = 14.sp,
                             fontFamily = fontFamily,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
@@ -426,26 +429,27 @@ fun IosSettingsSheet(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             listOf(
-                                0.85f to "Kompakt (%85)",
-                                1.00f to "Standart (%100)",
-                                1.15f to "Geniş (%115)"
+                                0.85f to "%85 (Küçük)",
+                                1.00f to "%100 (Normal)",
+                                1.15f to "%115 (Büyük)"
                             ).forEach { (scaleVal, label) ->
                                 val isSelected = kotlin.math.abs(state.widgetScale - scaleVal) < 0.05f
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                        .background(if (isSelected) Color(0xFF007AFF) else if (palette.isDark) Color(0xFF26282E) else Color(0xFFE2E8F0))
                                         .clickable { onChangeWidgetScale(scaleVal) }
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = label,
-                                        fontSize = 12.sp,
+                                        fontSize = 11.5.sp,
                                         fontFamily = fontFamily,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = Color.White
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color.White else palette.primaryTextColor,
+                                        maxLines = 1
                                     )
                                 }
                             }
@@ -490,11 +494,11 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // SECTION 4: DOCK APP LIMIT (User requested: "alttaki 2 den fazla şey olunca fazlalık kötü gözüküyor")
+                // SECTION 4: DOCK APP LIMIT
                 IosSectionHeader(title = "ALT DOCK UYGULAMA SAYISI", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
 
-                IosGroupCard {
+                IosGroupCard(cardBg = if (palette.isDark) Color(0xFF1B1F27) else Color.White) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -502,7 +506,7 @@ fun IosSettingsSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            2 to "2 Uygulama (Sade)",
+                            2 to "2 Uygulama",
                             3 to "3 Uygulama",
                             4 to "4 Uygulama"
                         ).forEach { (count, label) ->
@@ -511,7 +515,7 @@ fun IosSettingsSheet(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                    .background(if (isSelected) Color(0xFF007AFF) else if (palette.isDark) Color(0xFF26282E) else Color(0xFFE2E8F0))
                                     .clickable { onChangeDockLimit(count) }
                                     .padding(vertical = 10.dp),
                                 contentAlignment = Alignment.Center
@@ -520,8 +524,9 @@ fun IosSettingsSheet(
                                     text = label,
                                     fontSize = 12.sp,
                                     fontFamily = fontFamily,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = Color.White
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else palette.primaryTextColor,
+                                    maxLines = 1
                                 )
                             }
                         }
@@ -534,20 +539,20 @@ fun IosSettingsSheet(
                 IosSectionHeader(title = "UYGULAMA IZGARASI SÜTUN SAYISI", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
 
-                IosGroupCard {
+                IosGroupCard(cardBg = if (palette.isDark) Color(0xFF1B1F27) else Color.White) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(3 to "3 Sütun", 4 to "4 Sütun (Standart)", 5 to "5 Sütun").forEach { (cols, label) ->
+                        listOf(3 to "3 Sütun", 4 to "4 Sütun", 5 to "5 Sütun").forEach { (cols, label) ->
                             val isSelected = state.gridColumns == cols
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                    .background(if (isSelected) Color(0xFF007AFF) else if (palette.isDark) Color(0xFF26282E) else Color(0xFFE2E8F0))
                                     .clickable { onChangeGridColumns(cols) }
                                     .padding(vertical = 10.dp),
                                 contentAlignment = Alignment.Center
@@ -556,8 +561,9 @@ fun IosSettingsSheet(
                                     text = label,
                                     fontSize = 12.sp,
                                     fontFamily = fontFamily,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = Color.White
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else palette.primaryTextColor,
+                                    maxLines = 1
                                 )
                             }
                         }

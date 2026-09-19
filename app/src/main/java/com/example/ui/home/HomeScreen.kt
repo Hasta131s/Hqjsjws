@@ -153,6 +153,17 @@ fun HomeScreen(
         }
     }
 
+    // Effective blur radius: increases gracefully when sheets or drawer are open
+    val hasSheetOpen = uiState.isDrawerOpen || uiState.isCustomizeSheetOpen || 
+                       uiState.isHomeMenuOpen || uiState.isAddWidgetSheetOpen || 
+                       uiState.isOnlineWallpaperSheetOpen || uiState.selectedIndividualWidgetForEdit != null
+
+    val effectiveWallpaperBlur = if (hasSheetOpen) {
+        uiState.blurRadiusDp.coerceAtLeast(24f)
+    } else {
+        uiState.blurRadiusDp
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -170,11 +181,12 @@ fun HomeScreen(
                 }
             )
     ) {
-        // 1. Wallpaper Engine (Atmospheric & Silk gradients or Gallery photo)
+        // 1. Wallpaper Engine (Atmospheric & Silk gradients or Gallery photo with authentic Blur)
         IosWallpaper(
             preset = uiState.iosWallpaperPreset,
             customImageUri = uiState.customGalleryWallpaperUri,
-            isMusicReactive = uiState.isMusicReactive
+            isMusicReactive = uiState.isMusicReactive,
+            blurRadius = effectiveWallpaperBlur
         )
 
         // 2. Main SpringBoard Column
@@ -301,11 +313,12 @@ fun HomeScreen(
                                 }
                                 .zIndex(if (isWidgetBeingDragged) 100f else 1f)
                                 .scale(if (isWidgetBeingDragged) 1.08f else 1.0f)
-                                .pointerInput(Unit) {
+                                .pointerInput(widgetConfig.type) {
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = {
                                             draggedWidgetIndex = wIndex
                                             widgetDragOffsetX = 0f
+                                            viewModel.setEditMode(true)
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
@@ -326,8 +339,8 @@ fun HomeScreen(
                                                         if (fromOriginal != -1 && toOriginal != -1) {
                                                             viewModel.reorderWidgets(fromOriginal, toOriginal)
                                                         }
+                                                        widgetDragOffsetX = currentCenter.x - bounds.center.x
                                                         draggedWidgetIndex = targetIdx
-                                                        widgetDragOffsetX = 0f
                                                         break
                                                     }
                                                 }
@@ -479,12 +492,13 @@ fun HomeScreen(
                                 }
                                 .zIndex(if (isBeingDragged) 100f else 1f)
                                 .scale(if (isBeingDragged) 1.15f else 1.0f)
-                                .pointerInput(Unit) {
+                                .pointerInput(app.packageName) {
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = {
                                             draggedAppIndex = index
                                             dragOffsetX = 0f
                                             dragOffsetY = 0f
+                                            viewModel.setEditMode(true)
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
@@ -502,9 +516,9 @@ fun HomeScreen(
                                                 for ((targetIdx, bounds) in itemBoundsMap) {
                                                     if (targetIdx != draggedAppIndex && bounds.contains(currentCenter)) {
                                                         viewModel.reorderApps(draggedAppIndex, targetIdx)
+                                                        dragOffsetX = currentCenter.x - bounds.center.x
+                                                        dragOffsetY = currentCenter.y - bounds.center.y
                                                         draggedAppIndex = targetIdx
-                                                        dragOffsetX = 0f
-                                                        dragOffsetY = 0f
                                                         break
                                                     }
                                                 }
@@ -522,22 +536,29 @@ fun HomeScreen(
                                         }
                                     )
                                 }
+                                .combinedClickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        if (uiState.isEditMode) {
+                                            viewModel.setEditMode(false)
+                                        } else {
+                                            viewModel.launchApp(app)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (!uiState.isEditMode) {
+                                            viewModel.openContextMenu(app)
+                                        }
+                                    }
+                                )
                         ) {
                             IosAppIcon(
                                 app = app,
                                 iconSize = 56.dp,
                                 fontFamily = activeFontFamily,
                                 showLabel = uiState.showLabels,
-                                onClick = {
-                                    if (uiState.isEditMode) {
-                                        viewModel.setEditMode(false)
-                                    } else {
-                                        viewModel.launchApp(app)
-                                    }
-                                },
-                                onLongClick = {
-                                    viewModel.openContextMenu(app)
-                                }
+                                enableClick = false
                             )
 
                             // Edit Mode: Subtle clean remove badge

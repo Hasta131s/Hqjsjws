@@ -101,7 +101,10 @@ fun IosAppLibrarySheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (palette.isDark) Color(0xFF0F1116) else Color(0xFFF1F5F9))
+                .background(
+                    if (palette.isDark) Color(0xFF090B0F).copy(alpha = 0.88f)
+                    else Color(0xFFF8FAFC).copy(alpha = 0.90f)
+                )
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -428,7 +431,7 @@ fun IosAppLibrarySheet(
 }
 
 /**
- * Clean Corporate 2x2 Category Folder Card with ColorOS theme support.
+ * Clean Minimalist 2x2 Category Folder Card with ColorOS Frosted Glass theme support.
  */
 @Composable
 private fun IosCategoryFolderCard(
@@ -440,35 +443,31 @@ private fun IosCategoryFolderCard(
     onAppClick: (AppInfo) -> Unit,
     onAppLongClick: (AppInfo) -> Unit
 ) {
-    val folderShape = RoundedCornerShape(22.dp)
+    val folderShape = RoundedCornerShape(20.dp)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(170.dp)
-            .shadow(6.dp, folderShape)
             .clip(folderShape)
-            .background(palette.surfaceColor)
+            .background(palette.cardBackground)
             .border(0.5.dp, palette.surfaceBorderColor, folderShape)
+            .clickable(onClick = onOpenFolder)
             .padding(12.dp)
     ) {
         // 2x2 Mini Icon Grid
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
-                verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (apps.isNotEmpty()) {
                     IosAppIcon(
                         app = apps[0],
-                        iconSize = 44.dp,
+                        iconSize = 42.dp,
                         fontFamily = fontFamily,
                         showLabel = false,
                         onClick = { onAppClick(apps[0]) },
@@ -478,12 +477,10 @@ private fun IosCategoryFolderCard(
                     EmptyFolderSlot(palette)
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
                 if (apps.size > 2) {
                     IosAppIcon(
                         app = apps[2],
-                        iconSize = 44.dp,
+                        iconSize = 42.dp,
                         fontFamily = fontFamily,
                         showLabel = false,
                         onClick = { onAppClick(apps[2]) },
@@ -494,17 +491,16 @@ private fun IosCategoryFolderCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Column(
-                verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (apps.size > 1) {
                     IosAppIcon(
                         app = apps[1],
-                        iconSize = 44.dp,
+                        iconSize = 42.dp,
                         fontFamily = fontFamily,
                         showLabel = false,
                         onClick = { onAppClick(apps[1]) },
@@ -514,31 +510,28 @@ private fun IosCategoryFolderCard(
                     EmptyFolderSlot(palette)
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
                 if (apps.size > 4) {
-                    // 4th slot shows a mini 2x2 or +N badge representing remaining apps
+                    // 4th slot shows +N badge
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(42.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(palette.searchPillBackground)
                             .border(0.5.dp, palette.surfaceBorderColor, RoundedCornerShape(10.dp))
-                            .clickable(onClick = onOpenFolder)
                     ) {
                         Text(
                             text = "+${apps.size - 3}",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontFamily = fontFamily,
                             fontWeight = FontWeight.Bold,
-                            color = palette.primaryTextColor
+                            color = palette.accentColor
                         )
                     }
                 } else if (apps.size == 4) {
                     IosAppIcon(
                         app = apps[3],
-                        iconSize = 44.dp,
+                        iconSize = 42.dp,
                         fontFamily = fontFamily,
                         showLabel = false,
                         onClick = { onAppClick(apps[3]) },
@@ -550,22 +543,25 @@ private fun IosCategoryFolderCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
+        // Title and Count Footer
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onOpenFolder)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
-                fontSize = 12.sp,
+                fontSize = 12.5.sp,
                 fontFamily = fontFamily,
                 fontWeight = FontWeight.SemiBold,
-                color = palette.primaryTextColor
+                color = palette.primaryTextColor,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
             )
             Text(
                 text = "${apps.size}",
@@ -582,9 +578,9 @@ private fun IosCategoryFolderCard(
 private fun EmptyFolderSlot(palette: com.example.ui.theme.ColorOsPalette) {
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(42.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(palette.searchPillBackground.copy(alpha = 0.3f))
+            .background(palette.searchPillBackground.copy(alpha = 0.25f))
     )
 }
 
