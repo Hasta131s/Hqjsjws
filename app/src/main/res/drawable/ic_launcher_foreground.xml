@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer glass ripple ring -->
+    <path
+        android:pathData="M54,28 C68.36,28 80,39.64 80,54 C80,68.36 68.36,80 54,80 C39.64,80 28,68.36 28,54 C28,39.64 39.64,28 54,28 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#5000E5FF"
+        android:fillColor="#1500E5FF" />
+
+    <!-- Liquid droplet shape -->
+    <path android:pathData="M54,30 C54,30 74,52 74,62 C74,73.05 65.05,82 54,82 C42.95,82 34,73.05 34,62 C34,52 54,30 54,30 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="30"
+                android:endX="54"
+                android:endY="82"
+                android:type="linear">
+                <item android:color="#E000F5FF" android:offset="0.0" />
+                <item android:color="#C000B4D8" android:offset="0.55" />
+                <item android:color="#E60077B6" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Glass specular highlight (light curvature) -->
+    <path
+        android:pathData="M46,42 C51,36 54,34 56,40 C53,44 48,50 44,58 C42,54 44,46 46,42 Z"
+        android:fillColor="#90FFFFFF" />
+
+    <!-- Central launcher core / droplet spark -->
+    <path
+        android:pathData="M54,58 C57.31,58 60,60.69 60,64 C60,67.31 57.31,70 54,70 C50.69,70 48,67.31 48,64 C48,60.69 50.69,58 54,58 Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- Orbital caustic arc -->
+    <path
+        android:pathData="M38,62 C40,70 46,76 54,76"
+        android:strokeWidth="1.8"
+        android:strokeColor="#B0FFFFFF"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

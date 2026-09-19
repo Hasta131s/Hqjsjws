@@ -1,0 +1,6 @@
+{
+  "name": "Tvnah Launcher",
+  "description": "Akıcı animasyonlar, sıvı cam (liquid glass) efektleri, özelleştirilebilir simge paketleri ve benzersiz widgetlara sahip yüksek performanslı Android Launcher.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
