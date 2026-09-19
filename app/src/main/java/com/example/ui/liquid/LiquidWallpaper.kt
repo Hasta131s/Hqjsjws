@@ -9,8 +9,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +25,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.engine.MusicVisualizerManager
 import com.example.model.LiquidWallpaperConfig
 import com.example.model.LiquidWallpaperType
 import com.example.model.PerformanceMode
@@ -50,13 +57,18 @@ fun LiquidWallpaper(
     config: LiquidWallpaperConfig,
     performanceMode: PerformanceMode,
     modifier: Modifier = Modifier,
-    enableInteractiveTouch: Boolean = true
+    enableInteractiveTouch: Boolean = true,
+    customImageUri: String? = null,
+    isMusicReactive: Boolean = false
 ) {
+    val rhythmPulse by MusicVisualizerManager.rhythmPulse.collectAsState()
+    val activePulse = if (isMusicReactive) rhythmPulse else 1.0f
+
     val isAnimated = performanceMode != PerformanceMode.ECO_SAVER
-    val speedMultiplier = config.flowSpeed.coerceIn(0.2f, 3.0f)
-    val baseDuration1 = (14000L / speedMultiplier).toLong().coerceAtLeast(3000L)
-    val baseDuration2 = (22000L / speedMultiplier).toLong().coerceAtLeast(4000L)
-    val baseDuration3 = (18000L / speedMultiplier).toLong().coerceAtLeast(3500L)
+    val speedMultiplier = (config.flowSpeed * (if (isMusicReactive) activePulse else 1.0f)).coerceIn(0.2f, 4.0f)
+    val baseDuration1 = (14000L / speedMultiplier).toLong().coerceAtLeast(2000L)
+    val baseDuration2 = (22000L / speedMultiplier).toLong().coerceAtLeast(3000L)
+    val baseDuration3 = (18000L / speedMultiplier).toLong().coerceAtLeast(2500L)
 
     val infiniteTransition = rememberInfiniteTransition(label = "LiquidGlassOpticsTransition")
 
@@ -132,32 +144,58 @@ fun LiquidWallpaper(
         modifier
     }
 
-    Canvas(modifier = interactiveModifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val type = config.wallpaperType
-
-        // 1. Base Liquid Gradient
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    type.primaryColor,
-                    type.secondaryColor,
-                    Color(0xFF030710)
-                )
-            )
-        )
-
-        // Frosted Diffusion Layer
-        if (config.frostedDiffusion > 0.02f) {
-            drawRect(
-                color = Color.White.copy(alpha = config.frostedDiffusion * 0.06f)
+    Box(modifier = modifier.fillMaxSize()) {
+        if (!customImageUri.isNullOrEmpty()) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(customImageUri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Custom Wallpaper",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
         }
 
-        if (performanceMode.causticsEnabled) {
-            val causticPower = config.causticIntensity
-            val glassScale = config.glassThickness
+        Canvas(modifier = interactiveModifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val type = config.wallpaperType
+
+            // 1. Base Liquid Gradient (Transparent if custom image is loaded)
+            if (customImageUri.isNullOrEmpty()) {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            type.primaryColor,
+                            type.secondaryColor,
+                            Color(0xFF030710)
+                        )
+                    )
+                )
+            } else {
+                // Subtle darkening vignette over user's photo
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.25f),
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.70f)
+                        )
+                    )
+                )
+            }
+
+            // Frosted Diffusion Layer
+            if (config.frostedDiffusion > 0.02f) {
+                drawRect(
+                    color = Color.White.copy(alpha = config.frostedDiffusion * 0.06f)
+                )
+            }
+
+            if (performanceMode.causticsEnabled) {
+                val causticPower = config.causticIntensity * (if (isMusicReactive) (0.8f + activePulse * 0.5f) else 1.0f)
+                val glassScale = config.glassThickness * (if (isMusicReactive) (0.92f + activePulse * 0.15f) else 1.0f)
 
             // 2. Multi-Harmonic Liquid Caustic Lenses
             // Primary liquid caustic blob
@@ -288,6 +326,7 @@ fun LiquidWallpaper(
             }
         }
     }
+}
 }
 
 /**

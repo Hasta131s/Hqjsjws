@@ -1,10 +1,15 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.engine.AppLauncherManager
 import com.example.engine.BatteryMonitor
+import com.example.engine.DeviceFlashlightManager
+import com.example.engine.MusicVisualizerManager
+import com.example.engine.OnlineWallpaperRepository
 import com.example.engine.SystemWallpaperManager
 import com.example.engine.SystemWallpaperTarget
 import com.example.model.AppCategory
@@ -12,10 +17,14 @@ import com.example.model.AppInfo
 import com.example.model.BatteryState
 import com.example.model.IconShape
 import com.example.model.IconThemePack
+import com.example.model.IosWallpaperPreset
 import com.example.model.LiquidWallpaperConfig
 import com.example.model.LiquidWallpaperType
+import com.example.model.OnlineWallpaper
 import com.example.model.PerformanceMode
+import com.example.model.WallpaperCategory
 import com.example.model.WeatherState
+import com.example.ui.theme.LauncherFont
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,9 +40,9 @@ data class LauncherUiState(
     val favoriteApps: List<AppInfo> = emptyList(),
     val searchQuery: String = "",
     val selectedCategory: AppCategory = AppCategory.ALL,
-    val iconShape: IconShape = IconShape.LIQUID_PEBBLE,
+    val iconShape: IconShape = IconShape.SQUIRCLE,
     val iconThemePack: IconThemePack = IconThemePack.AURA_CYAN,
-    val iconSize: Float = 56f,
+    val iconSize: Float = 58f,
     val showLabels: Boolean = true,
     val selectedWallpaper: LiquidWallpaperType = LiquidWallpaperType.HYDRA_ABYSS,
     val wallpaperConfig: LiquidWallpaperConfig = LiquidWallpaperConfig.defaultFor(LiquidWallpaperType.HYDRA_ABYSS),
@@ -42,8 +51,27 @@ data class LauncherUiState(
     val isDrawerOpen: Boolean = false,
     val isSettingsOpen: Boolean = false,
     val isWallpaperManagerOpen: Boolean = false,
+    val isCustomizeSheetOpen: Boolean = false,
+    val isOnlineWallpaperSheetOpen: Boolean = false,
     val activeContextMenuApp: AppInfo? = null,
-    val isLoadingApps: Boolean = true
+    val isLoadingApps: Boolean = true,
+    // iOS Minimalist & Customization Features
+    val showClockWidget: Boolean = true,
+    val showWeatherWidget: Boolean = true,
+    val showBatteryWidget: Boolean = true,
+    val showMediaWidget: Boolean = true,
+    val showFlashlightQuickAction: Boolean = true,
+    val showFavoritesShelf: Boolean = true,
+    val showSearchBar: Boolean = true,
+    val selectedFont: LauncherFont = LauncherFont.OUTFIT,
+    val isMusicReactive: Boolean = false,
+    val isTorchOn: Boolean = false,
+    val customGalleryWallpaperUri: String? = null,
+    val onlineWallpapers: List<OnlineWallpaper> = emptyList(),
+    val isLoadingWallpapers: Boolean = false,
+    val selectedWallpaperCategory: WallpaperCategory = WallpaperCategory.ALL,
+    val previewWallpaper: OnlineWallpaper? = null,
+    val iosWallpaperPreset: IosWallpaperPreset = IosWallpaperPreset.IOS_18_NEBULA
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -66,6 +94,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     init {
         refreshApps()
+        observeFlashlight()
+        loadOnlineWallpapers(WallpaperCategory.ALL)
     }
 
     fun refreshApps() {
@@ -276,5 +306,128 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             condition = nextCond,
             humidityPercent = (50..85).random()
         )
+    }
+
+    private fun observeFlashlight() {
+        viewModelScope.launch {
+            DeviceFlashlightManager.isTorchOn.collect { torchOn ->
+                _uiState.value = _uiState.value.copy(isTorchOn = torchOn)
+            }
+        }
+    }
+
+    fun toggleTorch(context: Context) {
+        DeviceFlashlightManager.toggleTorch(context)
+    }
+
+    fun toggleMusicReactive() {
+        val newState = MusicVisualizerManager.toggleMusicReactive()
+        _uiState.value = _uiState.value.copy(isMusicReactive = newState)
+    }
+
+    fun setFont(font: LauncherFont) {
+        _uiState.value = _uiState.value.copy(selectedFont = font)
+    }
+
+    fun toggleClockWidget() {
+        _uiState.value = _uiState.value.copy(showClockWidget = !_uiState.value.showClockWidget)
+    }
+
+    fun toggleWeatherWidget() {
+        _uiState.value = _uiState.value.copy(showWeatherWidget = !_uiState.value.showWeatherWidget)
+    }
+
+    fun toggleBatteryWidget() {
+        _uiState.value = _uiState.value.copy(showBatteryWidget = !_uiState.value.showBatteryWidget)
+    }
+
+    fun toggleMediaWidget() {
+        _uiState.value = _uiState.value.copy(showMediaWidget = !_uiState.value.showMediaWidget)
+    }
+
+    fun toggleFlashlightQuickAction() {
+        _uiState.value = _uiState.value.copy(showFlashlightQuickAction = !_uiState.value.showFlashlightQuickAction)
+    }
+
+    fun toggleFavoritesShelf() {
+        _uiState.value = _uiState.value.copy(showFavoritesShelf = !_uiState.value.showFavoritesShelf)
+    }
+
+    fun toggleSearchBar() {
+        _uiState.value = _uiState.value.copy(showSearchBar = !_uiState.value.showSearchBar)
+    }
+
+    fun openCustomizeSheet() {
+        _uiState.value = _uiState.value.copy(isCustomizeSheetOpen = true)
+    }
+
+    fun closeCustomizeSheet() {
+        _uiState.value = _uiState.value.copy(isCustomizeSheetOpen = false)
+    }
+
+    fun openOnlineWallpaperSheet() {
+        _uiState.value = _uiState.value.copy(isOnlineWallpaperSheetOpen = true)
+        if (_uiState.value.onlineWallpapers.isEmpty()) {
+            loadOnlineWallpapers(_uiState.value.selectedWallpaperCategory)
+        }
+    }
+
+    fun closeOnlineWallpaperSheet() {
+        _uiState.value = _uiState.value.copy(isOnlineWallpaperSheetOpen = false, previewWallpaper = null)
+    }
+
+    fun loadOnlineWallpapers(category: WallpaperCategory) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoadingWallpapers = true,
+                selectedWallpaperCategory = category
+            )
+            val list = OnlineWallpaperRepository.fetchWallpapers(category)
+            _uiState.value = _uiState.value.copy(
+                onlineWallpapers = list,
+                isLoadingWallpapers = false
+            )
+        }
+    }
+
+    fun setPreviewWallpaper(wallpaper: OnlineWallpaper?) {
+        _uiState.value = _uiState.value.copy(previewWallpaper = wallpaper)
+    }
+
+    fun applyOnlineWallpaper(context: Context, wallpaper: OnlineWallpaper, target: SystemWallpaperTarget) {
+        viewModelScope.launch {
+            OnlineWallpaperRepository.downloadAndApplyWallpaper(context, wallpaper, target)
+        }
+    }
+
+    fun applyGalleryWallpaper(context: Context, uri: Uri, target: SystemWallpaperTarget) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(customGalleryWallpaperUri = uri.toString())
+            OnlineWallpaperRepository.applyGalleryImageAsWallpaper(context, uri, target)
+        }
+    }
+
+    fun setCustomGalleryWallpaper(uri: Uri?) {
+        _uiState.value = _uiState.value.copy(customGalleryWallpaperUri = uri?.toString())
+    }
+
+    fun setIosWallpaperPreset(preset: IosWallpaperPreset) {
+        _uiState.value = _uiState.value.copy(
+            iosWallpaperPreset = preset,
+            customGalleryWallpaperUri = null // Reset custom image when user selects a preset
+        )
+    }
+
+    fun clearCustomGalleryWallpaper() {
+        _uiState.value = _uiState.value.copy(customGalleryWallpaperUri = null)
+    }
+
+    fun uninstallApp(packageName: String) {
+        closeContextMenu()
+        launcherManager.uninstallApp(packageName)
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1000)
+            refreshApps()
+        }
     }
 }

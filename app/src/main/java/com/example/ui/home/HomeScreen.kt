@@ -1,19 +1,12 @@
 package com.example.ui.home
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,22 +17,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Apps
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.rounded.Wallpaper
-import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,24 +34,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.ui.drawer.AppDrawerSheet
-import com.example.ui.liquid.LiquidAppIcon
-import com.example.ui.liquid.LiquidGlassCard
-import com.example.ui.liquid.LiquidWallpaper
-import com.example.ui.liquid.WaterRippleContainer
-import com.example.ui.settings.TvnahSettingsSheet
-import com.example.ui.wallpaper.WallpaperManagerSheet
-import com.example.ui.widgets.AtmosphericWeatherWidget
-import com.example.ui.widgets.HydraBatteryCapsuleWidget
-import com.example.ui.widgets.LiquidClockWidget
-import com.example.ui.widgets.LiquidMediaCapsuleWidget
-import com.example.ui.widgets.QuickControlsWidget
+import com.example.ui.ios.IosAppIcon
+import com.example.ui.ios.IosAppLibrarySheet
+import com.example.ui.ios.IosBatteryWidget
+import com.example.ui.ios.IosClockHeader
+import com.example.ui.ios.IosDock
+import com.example.ui.ios.IosQuickActionButton
+import com.example.ui.ios.IosSearchPill
+import com.example.ui.ios.IosSettingsSheet
+import com.example.ui.ios.IosWallpaper
+import com.example.ui.ios.IosWeatherWidget
+import com.example.ui.theme.getLauncherFontFamily
+import com.example.ui.wallpaper.OnlineWallpaperSheet
 import com.example.viewmodel.LauncherViewModel
 
+/**
+ * Authentic Apple iPhone (iOS) Home Screen (SpringBoard).
+ * Completely replaces liquid glass with an authentic iOS design language:
+ * - Apple Silk & Atmospheric OLED Wallpapers
+ * - iOS Big Bold Clock & Date
+ * - Authentic 2x2 Weather & Battery Widgets
+ * - 4-Column iOS App Grid with Squircle Icons
+ * - SpringBoard "Ara" Search Pill
+ * - Frosted Bottom Dock
+ * - Lock Screen Flashlight & Wallpaper Quick Triggers
+ * - iOS App Library (Uygulama Arşivi) with app deletion support
+ */
 @Composable
 fun HomeScreen(
     viewModel: LauncherViewModel,
@@ -76,9 +71,9 @@ fun HomeScreen(
     val weatherState by viewModel.weatherState.collectAsState()
     val context = LocalContext.current
 
-    val scrollState = rememberScrollState()
+    val activeFontFamily = getLauncherFontFamily(uiState.selectedFont)
 
-    // Upward drag to open app drawer
+    // Upward drag opens the iOS App Library
     val swipeDraggableState = rememberDraggableState { delta ->
         if (delta < -25f && !uiState.isDrawerOpen) {
             viewModel.openDrawer()
@@ -93,328 +88,223 @@ fun HomeScreen(
                 orientation = Orientation.Vertical
             )
     ) {
-        // Dynamic Liquid Glass Wallpaper
-        LiquidWallpaper(
-            config = uiState.wallpaperConfig,
-            performanceMode = uiState.performanceMode
+        // 1. Authentic iOS 18 Wallpaper Engine (Zero water sloshing / zero caustic blobs)
+        IosWallpaper(
+            preset = uiState.iosWallpaperPreset,
+            customImageUri = uiState.customGalleryWallpaperUri,
+            isMusicReactive = uiState.isMusicReactive
         )
 
-        // Interactive Water Ripple Touch Layer
-        WaterRippleContainer(
-            modifier = Modifier.fillMaxSize(),
-            enabled = uiState.waterRippleEnabled,
-            rippleColor = uiState.iconThemePack.primaryTint
+        // 2. Main SpringBoard Column
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            Column(
+            // Top Status / Action Bar
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Top Glass Search & Settings Header
+                // Online 4K Wallpapers Hub
+                IconButton(
+                    onClick = { viewModel.openOnlineWallpaperSheet() },
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudDownload,
+                        contentDescription = "Çevrimiçi Duvar Kağıtları",
+                        tint = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Settings & Customizer
+                IconButton(
+                    onClick = { viewModel.openCustomizeSheet() },
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Ayarlar",
+                        tint = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            // Big Bold iOS Clock & Date Header
+            if (uiState.showClockWidget) {
+                IosClockHeader(
+                    fontFamily = activeFontFamily,
+                    onClick = { viewModel.openCustomizeSheet() }
+                )
+            }
+
+            // iOS 2x2 Widgets Row
+            if (uiState.showWeatherWidget || uiState.showBatteryWidget) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Tvnah Brand Capsule
-                    LiquidGlassCard(
-                        shape = RoundedCornerShape(18.dp),
-                        blurRefractionAlpha = 0.22f,
-                        onClick = { viewModel.openSettings() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.WaterDrop,
-                                contentDescription = "Logo",
-                                tint = Color(0xFF00F0FF),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "TVNAH",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 2.sp,
-                                color = Color.White
-                            )
-                        }
+                    if (uiState.showWeatherWidget) {
+                        IosWeatherWidget(
+                            weatherState = weatherState,
+                            fontFamily = activeFontFamily,
+                            onClick = { viewModel.refreshWeather() }
+                        )
                     }
-
-                    // Quick Search Bar Trigger
-                    LiquidGlassCard(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp),
-                        shape = RoundedCornerShape(18.dp),
-                        blurRefractionAlpha = 0.18f,
-                        onClick = { viewModel.openDrawer() }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = "Search",
-                                tint = Color(0xFF80DEEA),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Uygulama ara...",
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                    // Dynamic Wallpaper Manager Button
-                    LiquidGlassCard(
-                        shape = RoundedCornerShape(18.dp),
-                        blurRefractionAlpha = 0.22f,
-                        glowAccentColor = uiState.wallpaperConfig.wallpaperType.accentColor,
-                        onClick = { viewModel.openWallpaperManager() }
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .testTag("open_wallpaper_manager_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Wallpaper,
-                                contentDescription = "Wallpaper Studio",
-                                tint = uiState.wallpaperConfig.wallpaperType.accentColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    // Settings Button
-                    LiquidGlassCard(
-                        shape = RoundedCornerShape(18.dp),
-                        blurRefractionAlpha = 0.22f,
-                        onClick = { viewModel.openSettings() }
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Tune,
-                                contentDescription = "Launcher Settings",
-                                tint = Color(0xFF00F0FF),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Scrollable Content Area: Widgets & Favorites
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 18.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Widget 1: Clock with live undulating water seconds wave
-                    LiquidClockWidget(
-                        performanceMode = uiState.performanceMode,
-                        onClick = { viewModel.refreshApps() }
-                    )
-
-                    // Widget 2: Hydra Battery Capsule with real liquid sloshing
-                    HydraBatteryCapsuleWidget(
-                        batteryState = batteryState,
-                        performanceMode = uiState.performanceMode,
-                        onToggleEcoMode = { viewModel.toggleEcoMode() }
-                    )
-
-                    // Widget 3: Weather with dynamic condition & humidity droplet
-                    AtmosphericWeatherWidget(
-                        weatherState = weatherState,
-                        onRefresh = { viewModel.refreshWeather() }
-                    )
-
-                    // Widget 4: Liquid Media Visualizer Capsule
-                    LiquidMediaCapsuleWidget(
-                        performanceMode = uiState.performanceMode
-                    )
-
-                    // Widget 5: Quick Controls Glass Bar
-                    QuickControlsWidget(
-                        onOpenSettings = { viewModel.openSettings() }
-                    )
-
-                    // Favorite Apps Carousel / Quick Access
-                    if (uiState.favoriteApps.isNotEmpty()) {
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Sık Kullanılanlar",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp,
-                                    color = Color(0xFF80DEEA)
-                                )
-                                Text(
-                                    text = "Tümü için yukarı kaydır",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF90A4AE),
-                                    modifier = Modifier.clickable { viewModel.openDrawer() }
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            LiquidGlassCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(22.dp),
-                                blurRefractionAlpha = 0.16f
-                            ) {
-                                LazyRow(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    items(uiState.favoriteApps, key = { it.packageName }) { app ->
-                                        LiquidAppIcon(
-                                            app = app,
-                                            iconShape = uiState.iconShape,
-                                            iconThemePack = uiState.iconThemePack,
-                                            iconSize = uiState.iconSize.dp,
-                                            showLabel = uiState.showLabels,
-                                            onClick = { viewModel.launchApp(app) },
-                                            onLongClick = { viewModel.openContextMenu(app) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-
-                // Floating Glass Bottom Dock
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 18.dp, vertical = 8.dp)
-                ) {
-                    LiquidGlassCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(28.dp),
-                        blurRefractionAlpha = 0.26f,
-                        glowAccentColor = Color(0xFF00F0FF)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Pinned Dock Apps (up to 4)
-                            uiState.dockApps.forEach { app ->
-                                LiquidAppIcon(
-                                    app = app,
-                                    iconShape = uiState.iconShape,
-                                    iconThemePack = uiState.iconThemePack,
-                                    iconSize = 48.dp,
-                                    showLabel = false,
-                                    onClick = { viewModel.launchApp(app) },
-                                    onLongClick = { viewModel.openContextMenu(app) }
-                                )
-                            }
-
-                            // Drawer Trigger Button in Dock
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(Color(0xFF00F0FF).copy(alpha = 0.28f))
-                                    .clickable { viewModel.openDrawer() }
-                                    .testTag("open_drawer_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Apps,
-                                    contentDescription = "All Apps",
-                                    tint = Color(0xFF00F0FF),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
+                    if (uiState.showBatteryWidget) {
+                        IosBatteryWidget(
+                            batteryState = batteryState,
+                            fontFamily = activeFontFamily,
+                            onClick = { viewModel.toggleEcoMode() }
+                        )
                     }
                 }
             }
+
+            // 4-Column iOS App Grid (SpringBoard)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                val gridApps = if (uiState.showFavoritesShelf && uiState.favoriteApps.isNotEmpty()) {
+                    uiState.favoriteApps
+                } else {
+                    uiState.allApps
+                }
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(gridApps, key = { it.packageName }) { app ->
+                        IosAppIcon(
+                            app = app,
+                            iconSize = 58.dp,
+                            fontFamily = activeFontFamily,
+                            showLabel = uiState.showLabels,
+                            onClick = { viewModel.launchApp(app) },
+                            onLongClick = { viewModel.openContextMenu(app) }
+                        )
+                    }
+                }
+            }
+
+            // iOS "Ara" (Search) SpringBoard Pill
+            if (uiState.showSearchBar) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IosSearchPill(
+                        fontFamily = activeFontFamily,
+                        onClick = { viewModel.openDrawer() }
+                    )
+                }
+            }
+
+            // Bottom Bar: Flashlight + Frosted iOS Dock + Wallpaper Quick Action
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Real Hardware Flashlight Button (iOS Lockscreen style)
+                if (uiState.showFlashlightQuickAction) {
+                    IosQuickActionButton(
+                        isTorch = true,
+                        isTorchOn = uiState.isTorchOn,
+                        onClick = { viewModel.toggleTorch(context) }
+                    )
+                }
+
+                // Iconic iOS Frosted Bottom Dock
+                IosDock(
+                    dockApps = uiState.dockApps,
+                    fontFamily = activeFontFamily,
+                    onAppClick = { viewModel.launchApp(it) },
+                    onAppLongClick = { viewModel.openContextMenu(it) },
+                    onOpenAppLibrary = { viewModel.openDrawer() },
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Quick Wallpaper Action Button
+                IosQuickActionButton(
+                    isTorch = false,
+                    isTorchOn = false,
+                    onClick = { viewModel.openOnlineWallpaperSheet() }
+                )
+            }
         }
 
-        // App Drawer Sheet
-        AppDrawerSheet(
+        // 3. Authentic iOS App Library (Uygulama Arşivi) with uninstall action
+        IosAppLibrarySheet(
             state = uiState,
+            fontFamily = activeFontFamily,
             onClose = { viewModel.closeDrawer() },
             onSearchChange = { viewModel.onSearchQueryChanged(it) },
-            onCategorySelect = { viewModel.onCategorySelected(it) },
             onAppClick = { viewModel.launchApp(it) },
             onAppLongClick = { viewModel.openContextMenu(it) },
             onToggleDockPin = { viewModel.toggleDockPin(it) },
             onOpenAppDetails = { viewModel.openAppDetails(it) },
+            onUninstallApp = { viewModel.uninstallApp(it) },
             onDismissContextMenu = { viewModel.closeContextMenu() }
         )
 
-        // Settings Sheet
-        TvnahSettingsSheet(
+        // 4. Authentic iOS Settings & Customization Sheet
+        IosSettingsSheet(
             state = uiState,
-            onClose = { viewModel.closeSettings() },
-            onSetIconShape = { viewModel.setIconShape(it) },
-            onSetIconThemePack = { viewModel.setIconThemePack(it) },
-            onSetIconSize = { viewModel.setIconSize(it) },
-            onToggleShowLabels = { viewModel.setShowLabels(it) },
-            onSetWallpaper = { viewModel.setWallpaper(it) },
-            onSetPerformanceMode = { viewModel.setPerformanceMode(it) },
-            onToggleWaterRipple = { viewModel.toggleWaterRipple() },
-            onSetDefaultLauncher = { viewModel.setAsDefaultLauncher(context) },
-            onOpenWallpaperManager = { viewModel.openWallpaperManager() },
-            onApplySystemWallpaper = { config, target ->
-                viewModel.applySystemWallpaper(context, config, target)
+            fontFamily = activeFontFamily,
+            context = context,
+            onClose = { viewModel.closeCustomizeSheet() },
+            onSelectIosWallpaper = { viewModel.setIosWallpaperPreset(it) },
+            onOpenOnlineWallpapers = { viewModel.openOnlineWallpaperSheet() },
+            onPickGalleryWallpaper = { uri ->
+                viewModel.applyGalleryWallpaper(context, uri, com.example.engine.SystemWallpaperTarget.BOTH)
             },
-            onLaunchLiveWallpaper = { config ->
-                viewModel.launchLiveWallpaperPreview(context, config)
-            }
+            onSelectFont = { viewModel.setFont(it) },
+            onToggleClock = { viewModel.toggleClockWidget() },
+            onToggleWeather = { viewModel.toggleWeatherWidget() },
+            onToggleBattery = { viewModel.toggleBatteryWidget() },
+            onToggleFavorites = { viewModel.toggleFavoritesShelf() },
+            onToggleSearchBar = { viewModel.toggleSearchBar() },
+            onToggleFlashlight = { viewModel.toggleFlashlightQuickAction() },
+            onToggleMusicReactive = { viewModel.toggleMusicReactive() },
+            onSetDefaultLauncher = { viewModel.setAsDefaultLauncher(context) }
         )
 
-        // Dynamic Liquid-Glass Wallpaper Manager Studio Sheet
-        WallpaperManagerSheet(
-            isOpen = uiState.isWallpaperManagerOpen,
-            currentConfig = uiState.wallpaperConfig,
-            performanceMode = uiState.performanceMode,
-            onClose = { viewModel.closeWallpaperManager() },
-            onApplyConfig = { viewModel.applyWallpaperConfig(it) },
-            onApplyAsSystemWallpaper = { config, target ->
-                viewModel.applySystemWallpaper(context, config, target)
+        // 5. Online Wallpapers Hub Sheet
+        OnlineWallpaperSheet(
+            isOpen = uiState.isOnlineWallpaperSheetOpen,
+            wallpapers = uiState.onlineWallpapers,
+            isLoading = uiState.isLoadingWallpapers,
+            selectedCategory = uiState.selectedWallpaperCategory,
+            previewWallpaper = uiState.previewWallpaper,
+            onClose = { viewModel.closeOnlineWallpaperSheet() },
+            onSelectCategory = { viewModel.loadOnlineWallpapers(it) },
+            onSelectPreview = { viewModel.setPreviewWallpaper(it) },
+            onApplyOnlineWallpaper = { wp, target ->
+                viewModel.applyOnlineWallpaper(context, wp, target)
             },
-            onLaunchLiveWallpaper = { config ->
-                viewModel.launchLiveWallpaperPreview(context, config)
-            },
-            onSetDefaultLauncher = {
-                viewModel.setAsDefaultLauncher(context)
+            onPickGalleryImage = { uri, target ->
+                viewModel.applyGalleryWallpaper(context, uri, target)
             }
         )
     }

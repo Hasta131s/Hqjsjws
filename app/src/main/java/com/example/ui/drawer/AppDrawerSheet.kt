@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pin
@@ -82,7 +83,8 @@ fun AppDrawerSheet(
     onToggleDockPin: (AppInfo) -> Unit,
     onOpenAppDetails: (String) -> Unit,
     onDismissContextMenu: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUninstallApp: (String) -> Unit = {}
 ) {
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
@@ -388,6 +390,17 @@ fun AppDrawerSheet(
                         onClick = { onOpenAppDetails(app.packageName) }
                     )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Action 4: Uninstall / Delete App
+                    ContextMenuActionItem(
+                        icon = Icons.Rounded.DeleteForever,
+                        title = "Uygulamayı Kaldır (Sil)",
+                        iconTint = Color(0xFFFF5252),
+                        textColor = Color(0xFFFF8A80),
+                        onClick = { onUninstallApp(app.packageName) }
+                    )
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Close
@@ -417,6 +430,8 @@ fun AppDrawerSheet(
 private fun ContextMenuActionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
+    iconTint: Color = Color(0xFF00F0FF),
+    textColor: Color = Color.White,
     onClick: () -> Unit
 ) {
     Row(
@@ -432,7 +447,7 @@ private fun ContextMenuActionItem(
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = Color(0xFF00F0FF),
+            tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -440,7 +455,7 @@ private fun ContextMenuActionItem(
             text = title,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White
+            color = textColor
         )
     }
 }

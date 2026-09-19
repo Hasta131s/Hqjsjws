@@ -163,6 +163,29 @@ class AppLauncherManager(private val context: Context) {
         } catch (_: Exception) {}
     }
 
+    fun uninstallApp(packageName: String): Boolean {
+        return try {
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = Uri.parse("package:$packageName")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            try {
+                val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
+                    data = Uri.parse("package:$packageName")
+                    putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
     fun openDefaultLauncherSettings() {
         try {
             val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
