@@ -59,7 +59,7 @@ fun IosWallpaper(
                     .data(customImageUri)
                     .crossfade(true)
                     .build(),
-                contentDescription = "Custom iOS Wallpaper",
+                contentDescription = "Özel Duvar Kağıdı",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )

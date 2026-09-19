@@ -6,12 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,39 +24,40 @@ import androidx.compose.ui.unit.dp
 import com.example.model.AppInfo
 
 /**
- * Authentic Apple iOS Frosted Bottom Dock.
+ * Clean Minimalist Bottom Dock (Defaults to 2 apps, avoiding overcrowding).
+ * Solid matte surface, no glass glare.
  */
 @Composable
 fun IosDock(
     dockApps: List<AppInfo>,
+    dockLimit: Int = 2,
     fontFamily: FontFamily,
     onAppClick: (AppInfo) -> Unit,
     onAppLongClick: (AppInfo) -> Unit,
     onOpenAppLibrary: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dockShape = RoundedCornerShape(35.dp)
+    val dockShape = RoundedCornerShape(32.dp)
+    val displayApps = dockApps.take(dockLimit)
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .shadow(16.dp, dockShape, ambientColor = Color.Black.copy(alpha = 0.6f))
+            .widthIn(min = 140.dp, max = 280.dp)
+            .shadow(12.dp, dockShape, ambientColor = Color.Black.copy(alpha = 0.6f))
             .clip(dockShape)
-            .background(Color.White.copy(alpha = 0.22f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.35f), dockShape)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .background(Color(0xFF1E2024))
+            .border(0.5.dp, Color.White.copy(alpha = 0.16f), dockShape)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Pinned dock apps (up to 4)
-            dockApps.take(4).forEach { app ->
+            displayApps.forEach { app ->
                 IosAppIcon(
                     app = app,
-                    iconSize = 54.dp,
+                    iconSize = 56.dp,
                     fontFamily = fontFamily,
                     showLabel = false,
                     onClick = { onAppClick(app) },
@@ -64,22 +65,24 @@ fun IosDock(
                 )
             }
 
-            // App Library trigger icon in dock
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(14.dp))
-                    .clickable(onClick = onOpenAppLibrary)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Apps,
-                    contentDescription = "Uygulama Arşivi",
-                    tint = Color.White,
-                    modifier = Modifier.size(26.dp)
-                )
+            // If dock has fewer than limit, show a clean "+" slot to add apps from library
+            if (displayApps.size < dockLimit) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+                        .clickable(onClick = onOpenAppLibrary)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = "Uygulama Ekle",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }

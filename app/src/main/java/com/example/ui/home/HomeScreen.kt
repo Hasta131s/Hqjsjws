@@ -8,21 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,7 +26,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -45,21 +39,14 @@ import com.example.ui.ios.IosSearchPill
 import com.example.ui.ios.IosSettingsSheet
 import com.example.ui.ios.IosWallpaper
 import com.example.ui.ios.IosWeatherWidget
+import com.example.ui.theme.getClockFontFamily
+import com.example.ui.theme.getClockFontWeight
 import com.example.ui.theme.getLauncherFontFamily
 import com.example.ui.wallpaper.OnlineWallpaperSheet
 import com.example.viewmodel.LauncherViewModel
 
 /**
- * Authentic Apple iPhone (iOS) Home Screen (SpringBoard).
- * Completely replaces liquid glass with an authentic iOS design language:
- * - Apple Silk & Atmospheric OLED Wallpapers
- * - iOS Big Bold Clock & Date
- * - Authentic 2x2 Weather & Battery Widgets
- * - 4-Column iOS App Grid with Squircle Icons
- * - SpringBoard "Ara" Search Pill
- * - Frosted Bottom Dock
- * - Lock Screen Flashlight & Wallpaper Quick Triggers
- * - iOS App Library (Uygulama Arşivi) with app deletion support
+ * Modern Minimalist Home Screen with custom widgets, 20 clock fonts, and clean 2-app dock.
  */
 @Composable
 fun HomeScreen(
@@ -72,8 +59,10 @@ fun HomeScreen(
     val context = LocalContext.current
 
     val activeFontFamily = getLauncherFontFamily(uiState.selectedFont)
+    val clockFontFamily = getClockFontFamily(uiState.clockFontOption)
+    val clockFontWeight = getClockFontWeight(uiState.clockFontOption)
 
-    // Upward drag opens the iOS App Library
+    // Upward drag opens the App Library
     val swipeDraggableState = rememberDraggableState { delta ->
         if (delta < -25f && !uiState.isDrawerOpen) {
             viewModel.openDrawer()
@@ -88,7 +77,7 @@ fun HomeScreen(
                 orientation = Orientation.Vertical
             )
     ) {
-        // 1. Authentic iOS 18 Wallpaper Engine (Zero water sloshing / zero caustic blobs)
+        // 1. Wallpaper Engine (Atmospheric & Silk gradients or Gallery photo)
         IosWallpaper(
             preset = uiState.iosWallpaperPreset,
             customImageUri = uiState.customGalleryWallpaperUri,
@@ -101,50 +90,39 @@ fun HomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top Status / Action Bar
+            // Top Bar: Clean, distraction-free. Top-left wallpaper icon removed as requested!
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .padding(horizontal = 16.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Online 4K Wallpapers Hub
-                IconButton(
-                    onClick = { viewModel.openOnlineWallpaperSheet() },
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CloudDownload,
-                        contentDescription = "Çevrimiçi Duvar Kağıtları",
-                        tint = Color.White.copy(alpha = 0.85f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                // Settings & Customizer
+                // Subtle Settings icon on top-right
                 IconButton(
                     onClick = { viewModel.openCustomizeSheet() },
                     modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Ayarlar",
+                        contentDescription = "Ayarlar & Özelleştirme",
                         tint = Color.White.copy(alpha = 0.85f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
             }
 
-            // Big Bold iOS Clock & Date Header
+            // Customizable Big Clock & Date Header (Supports 20 fonts & custom slider size)
             if (uiState.showClockWidget) {
                 IosClockHeader(
-                    fontFamily = activeFontFamily,
+                    fontFamily = clockFontFamily,
+                    fontWeight = clockFontWeight,
+                    fontSizeSp = uiState.clockSizeSp,
                     onClick = { viewModel.openCustomizeSheet() }
                 )
             }
 
-            // iOS 2x2 Widgets Row
+            // Scalable 2x2 Widgets Row
             if (uiState.showWeatherWidget || uiState.showBatteryWidget) {
                 Row(
                     modifier = Modifier
@@ -157,6 +135,7 @@ fun HomeScreen(
                         IosWeatherWidget(
                             weatherState = weatherState,
                             fontFamily = activeFontFamily,
+                            scale = uiState.widgetScale,
                             onClick = { viewModel.refreshWeather() }
                         )
                     }
@@ -164,13 +143,14 @@ fun HomeScreen(
                         IosBatteryWidget(
                             batteryState = batteryState,
                             fontFamily = activeFontFamily,
+                            scale = uiState.widgetScale,
                             onClick = { viewModel.toggleEcoMode() }
                         )
                     }
                 }
             }
 
-            // 4-Column iOS App Grid (SpringBoard)
+            // App Grid with customizable columns (3, 4, or 5)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -183,7 +163,7 @@ fun HomeScreen(
                 }
 
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
+                    columns = GridCells.Fixed(uiState.gridColumns),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -192,7 +172,7 @@ fun HomeScreen(
                     items(gridApps, key = { it.packageName }) { app ->
                         IosAppIcon(
                             app = app,
-                            iconSize = 58.dp,
+                            iconSize = 56.dp,
                             fontFamily = activeFontFamily,
                             showLabel = uiState.showLabels,
                             onClick = { viewModel.launchApp(app) },
@@ -202,12 +182,12 @@ fun HomeScreen(
                 }
             }
 
-            // iOS "Ara" (Search) SpringBoard Pill
+            // "Ara" (Search) Pill
             if (uiState.showSearchBar) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 6.dp),
+                        .padding(bottom = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     IosSearchPill(
@@ -217,44 +197,42 @@ fun HomeScreen(
                 }
             }
 
-            // Bottom Bar: Flashlight + Frosted iOS Dock + Wallpaper Quick Action
-            Row(
+            // Bottom Area: Clean Minimal 2-app Dock + Optional Flashlight
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // Real Hardware Flashlight Button (iOS Lockscreen style)
-                if (uiState.showFlashlightQuickAction) {
-                    IosQuickActionButton(
-                        isTorch = true,
-                        isTorchOn = uiState.isTorchOn,
-                        onClick = { viewModel.toggleTorch(context) }
-                    )
-                }
-
-                // Iconic iOS Frosted Bottom Dock
+                // Clean Centered Dock (Defaults to 2 apps, avoiding clutter)
                 IosDock(
                     dockApps = uiState.dockApps,
+                    dockLimit = uiState.dockAppLimit,
                     fontFamily = activeFontFamily,
                     onAppClick = { viewModel.launchApp(it) },
                     onAppLongClick = { viewModel.openContextMenu(it) },
-                    onOpenAppLibrary = { viewModel.openDrawer() },
-                    modifier = Modifier.weight(1f)
+                    onOpenAppLibrary = { viewModel.openDrawer() }
                 )
 
-                // Quick Wallpaper Action Button
-                IosQuickActionButton(
-                    isTorch = false,
-                    isTorchOn = false,
-                    onClick = { viewModel.openOnlineWallpaperSheet() }
-                )
+                // Optional Flashlight pinned on bottom-left if enabled
+                if (uiState.showFlashlightQuickAction) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 6.dp)
+                    ) {
+                        IosQuickActionButton(
+                            isTorch = true,
+                            isTorchOn = uiState.isTorchOn,
+                            onClick = { viewModel.toggleTorch(context) }
+                        )
+                    }
+                }
             }
         }
 
-        // 3. Authentic iOS App Library (Uygulama Arşivi) with uninstall action
+        // 3. App Library Sheet with Favorite & Dock toggling + uninstall
         IosAppLibrarySheet(
             state = uiState,
             fontFamily = activeFontFamily,
@@ -263,12 +241,13 @@ fun HomeScreen(
             onAppClick = { viewModel.launchApp(it) },
             onAppLongClick = { viewModel.openContextMenu(it) },
             onToggleDockPin = { viewModel.toggleDockPin(it) },
+            onToggleFavorite = { viewModel.toggleFavoriteApp(it) },
             onOpenAppDetails = { viewModel.openAppDetails(it) },
             onUninstallApp = { viewModel.uninstallApp(it) },
             onDismissContextMenu = { viewModel.closeContextMenu() }
         )
 
-        // 4. Authentic iOS Settings & Customization Sheet
+        // 4. Settings & Customization Sheet (20 fonts, clock/widget sliders, dock limits)
         IosSettingsSheet(
             state = uiState,
             fontFamily = activeFontFamily,
@@ -280,6 +259,11 @@ fun HomeScreen(
                 viewModel.applyGalleryWallpaper(context, uri, com.example.engine.SystemWallpaperTarget.BOTH)
             },
             onSelectFont = { viewModel.setFont(it) },
+            onSelectClockFont = { viewModel.setClockFontOption(it) },
+            onChangeClockSize = { viewModel.setClockSize(it) },
+            onChangeWidgetScale = { viewModel.setWidgetScale(it) },
+            onChangeDockLimit = { viewModel.setDockAppLimit(it) },
+            onChangeGridColumns = { viewModel.setGridColumns(it) },
             onToggleClock = { viewModel.toggleClockWidget() },
             onToggleWeather = { viewModel.toggleWeatherWidget() },
             onToggleBattery = { viewModel.toggleBatteryWidget() },

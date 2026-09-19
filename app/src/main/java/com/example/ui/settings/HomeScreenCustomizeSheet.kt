@@ -306,7 +306,7 @@ fun HomeScreenCustomizeSheet(
                             CustomizeToggleRow(
                                 icon = Icons.Rounded.Schedule,
                                 title = "Saat & Tarih Başlığı",
-                                subtitle = "Minimal iOS dijital saat gösterimi",
+                                subtitle = "Minimal modern dijital saat gösterimi",
                                 checked = state.showClockWidget,
                                 onToggle = onToggleClock
                             )

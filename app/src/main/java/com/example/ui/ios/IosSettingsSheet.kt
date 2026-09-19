@@ -31,18 +31,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.FlashlightOn
+import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.ViewColumn
 import androidx.compose.material.icons.rounded.WbSunny
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -58,11 +64,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.IosWallpaperPreset
+import com.example.ui.theme.ClockFontOption
 import com.example.ui.theme.LauncherFont
+import com.example.ui.theme.getClockFontFamily
+import com.example.ui.theme.getClockFontWeight
 import com.example.viewmodel.LauncherUiState
 
 /**
- * Authentic Apple iOS Inset Grouped Settings & Customization Sheet.
+ * Modern Inset Grouped Settings & Full Customization Sheet.
+ * Features:
+ * - 20 Selectable Clock Fonts
+ * - Clock Size Slider
+ * - Widget Scale Selector
+ * - Dock App Limit Selector (Default 2 for ultra clean dock)
+ * - Grid Columns Selector
+ * - Solid Matte Cards (No glass glare, no brand mentions)
  */
 @Composable
 fun IosSettingsSheet(
@@ -74,6 +90,11 @@ fun IosSettingsSheet(
     onOpenOnlineWallpapers: () -> Unit,
     onPickGalleryWallpaper: (android.net.Uri) -> Unit,
     onSelectFont: (LauncherFont) -> Unit,
+    onSelectClockFont: (ClockFontOption) -> Unit,
+    onChangeClockSize: (Float) -> Unit,
+    onChangeWidgetScale: (Float) -> Unit,
+    onChangeDockLimit: (Int) -> Unit,
+    onChangeGridColumns: (Int) -> Unit,
     onToggleClock: () -> Unit,
     onToggleWeather: () -> Unit,
     onToggleBattery: () -> Unit,
@@ -101,7 +122,7 @@ fun IosSettingsSheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF000000).copy(alpha = 0.95f))
+                .background(Color(0xFF101012))
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -111,21 +132,21 @@ fun IosSettingsSheet(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                // iOS Navigation Header
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Ayarlar",
-                        fontSize = 28.sp,
+                        text = "Özelleştirme & Ayarlar",
+                        fontSize = 24.sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
 
-                    // Apple Done Button
+                    // Done Button
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -146,11 +167,223 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // SECTION 1: iOS WALLPAPERS
-                IosSectionHeader(title = "DUVAR KAĞIDI", fontFamily = fontFamily)
+                // SECTION 1: 20 CLOCK FONTS (Requested explicitly)
+                IosSectionHeader(title = "SAAT YAZI TİPİ (20 FARKLI FONT)", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // iOS Wallpaper Presets Carousel
+                IosGroupCard {
+                    ClockFontOption.values().forEachIndexed { index, option ->
+                        val isSelected = state.clockFontOption == option
+                        val optionFamily = getClockFontFamily(option)
+                        val optionWeight = getClockFontWeight(option)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectClockFont(option) }
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = option.displayName,
+                                    fontSize = 14.sp,
+                                    fontFamily = fontFamily,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "14:52",
+                                    fontSize = 18.sp,
+                                    fontFamily = optionFamily,
+                                    fontWeight = optionWeight,
+                                    color = if (isSelected) Color(0xFF007AFF) else Color.White.copy(alpha = 0.65f)
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = "Seçili",
+                                    tint = Color(0xFF007AFF),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        if (index < ClockFontOption.values().size - 1) {
+                            IosDivider()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 2: CLOCK SIZE CUSTOMIZATION
+                IosSectionHeader(title = "SAAT BOYUTU (${state.clockSizeSp.toInt()} SP)", fontFamily = fontFamily)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Küçük (48)",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "Standart (68)",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "Büyük (96)",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
+                        Slider(
+                            value = state.clockSizeSp,
+                            onValueChange = { onChangeClockSize(it) },
+                            valueRange = 40f..100f,
+                            steps = 12,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFF007AFF),
+                                activeTrackColor = Color(0xFF007AFF),
+                                inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 3: WIDGET SCALE CUSTOMIZATION
+                IosSectionHeader(title = "WİDGET BOYUTLARI", fontFamily = fontFamily)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            0.85f to "Kompakt (%85)",
+                            1.00f to "Standart (%100)",
+                            1.15f to "Geniş (%115)"
+                        ).forEach { (scaleVal, label) ->
+                            val isSelected = kotlin.math.abs(state.widgetScale - scaleVal) < 0.05f
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                    .clickable { onChangeWidgetScale(scaleVal) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontFamily = fontFamily,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 4: DOCK APP LIMIT (User requested: "alttaki 2 den fazla şey olunca fazlalık kötü gözüküyor")
+                IosSectionHeader(title = "ALT DOCK UYGULAMA SAYISI", fontFamily = fontFamily)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            2 to "2 Uygulama (Sade)",
+                            3 to "3 Uygulama",
+                            4 to "4 Uygulama"
+                        ).forEach { (count, label) ->
+                            val isSelected = state.dockAppLimit == count
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                    .clickable { onChangeDockLimit(count) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontFamily = fontFamily,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 5: GRID COLUMNS
+                IosSectionHeader(title = "UYGULAMA IZGARASI SÜTUN SAYISI", fontFamily = fontFamily)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(3 to "3 Sütun", 4 to "4 Sütun (Standart)", 5 to "5 Sütun").forEach { (cols, label) ->
+                            val isSelected = state.gridColumns == cols
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                    .clickable { onChangeGridColumns(cols) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontFamily = fontFamily,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 6: WALLPAPERS
+                IosSectionHeader(title = "DUVAR KAĞIDI PRESETLERİ", fontFamily = fontFamily)
+                Spacer(modifier = Modifier.height(6.dp))
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,7 +401,7 @@ fun IosSettingsSheet(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(width = 90.dp, height = 130.dp)
+                                    .size(width = 90.dp, height = 125.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(
                                         Brush.verticalGradient(
@@ -201,7 +434,7 @@ fun IosSettingsSheet(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = preset.titleTr.replace("iOS ", ""),
+                                text = preset.titleTr,
                                 fontSize = 11.sp,
                                 fontFamily = fontFamily,
                                 fontWeight = FontWeight.Medium,
@@ -214,18 +447,17 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Online & Gallery Wallpaper Action Group
                 IosGroupCard {
                     IosSettingRow(
                         icon = Icons.Rounded.CloudDownload,
-                        title = "Çevrimiçi Duvar Kağıtları (4K / HD)",
+                        title = "Çevrimiçi 4K Duvar Kağıtları İndir",
                         fontFamily = fontFamily,
                         onClick = onOpenOnlineWallpapers
                     )
                     IosDivider()
                     IosSettingRow(
                         icon = Icons.Rounded.Image,
-                        title = "Galeriden Fotoğraf Seç",
+                        title = "Galeriden Duvar Kağıdı Seç",
                         fontFamily = fontFamily,
                         onClick = {
                             photoPickerLauncher.launch(
@@ -237,46 +469,7 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // SECTION 2: FONTS & TYPOGRAPHY
-                IosSectionHeader(title = "YAZI TİPİ", fontFamily = fontFamily)
-                Spacer(modifier = Modifier.height(6.dp))
-
-                IosGroupCard {
-                    LauncherFont.values().forEachIndexed { index, font ->
-                        val isSelected = state.selectedFont == font
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelectFont(font) }
-                                .padding(horizontal = 16.dp, vertical = 13.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = font.titleTr,
-                                fontSize = 15.sp,
-                                fontFamily = fontFamily,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = Color.White
-                            )
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Check,
-                                    contentDescription = "Seçili",
-                                    tint = Color(0xFF007AFF),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                        if (index < LauncherFont.values().size - 1) {
-                            IosDivider()
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // SECTION 3: HOME SCREEN CONTENT (Modular Widgets Toggle)
+                // SECTION 7: HOME SCREEN CONTENT TOGGLES
                 IosSectionHeader(title = "ANA EKRAN BİLEŞENLERİ", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -323,7 +516,7 @@ fun IosSettingsSheet(
                     IosDivider()
                     IosToggleRow(
                         icon = Icons.Rounded.FlashlightOn,
-                        title = "Kilit Ekranı Fener Kısayolu",
+                        title = "Fener Kısayolu",
                         checked = state.showFlashlightQuickAction,
                         fontFamily = fontFamily,
                         onCheckedChange = { onToggleFlashlight() }
@@ -331,7 +524,7 @@ fun IosSettingsSheet(
                     IosDivider()
                     IosToggleRow(
                         icon = Icons.Rounded.MusicNote,
-                        title = "Müziğe Göre Işıma Efekti",
+                        title = "Müziğe Göre Işıma",
                         checked = state.isMusicReactive,
                         fontFamily = fontFamily,
                         onCheckedChange = { onToggleMusicReactive() }
@@ -340,7 +533,7 @@ fun IosSettingsSheet(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // SECTION 4: SYSTEM INTEGRATION
+                // SECTION 8: SYSTEM LAUNCHER
                 IosSectionHeader(title = "SİSTEM", fontFamily = fontFamily)
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -363,10 +556,10 @@ fun IosSettingsSheet(
 private fun IosSectionHeader(title: String, fontFamily: FontFamily) {
     Text(
         text = title,
-        fontSize = 12.sp,
+        fontSize = 11.5.sp,
         fontFamily = fontFamily,
         fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.6.sp,
+        letterSpacing = 0.5.sp,
         color = Color.White.copy(alpha = 0.55f),
         modifier = Modifier.padding(start = 12.dp)
     )
@@ -380,7 +573,7 @@ private fun IosGroupCard(content: @Composable () -> Unit) {
             .fillMaxWidth()
             .shadow(4.dp, shape)
             .clip(shape)
-            .background(Color(0xFF1C1C1E))
+            .background(Color(0xFF1C1D21))
             .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
     ) {
         content()
@@ -394,7 +587,7 @@ private fun IosDivider() {
             .fillMaxWidth()
             .padding(start = 48.dp)
             .height(0.5.dp)
-            .background(Color.White.copy(alpha = 0.12f))
+            .background(Color.White.copy(alpha = 0.10f))
     )
 }
 
@@ -429,7 +622,7 @@ private fun IosSettingRow(
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = title,
-            fontSize = 15.sp,
+            fontSize = 14.5.sp,
             fontFamily = fontFamily,
             color = Color.White,
             modifier = Modifier.weight(1f)
@@ -448,7 +641,7 @@ private fun IosToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -473,13 +666,12 @@ private fun IosToggleRow(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
-                fontSize = 15.sp,
+                fontSize = 14.5.sp,
                 fontFamily = fontFamily,
                 color = Color.White
             )
         }
 
-        // Apple Green Switch
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,

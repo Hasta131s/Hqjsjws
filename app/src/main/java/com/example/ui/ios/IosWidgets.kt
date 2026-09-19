@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.FlashlightOff
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -39,7 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
@@ -55,11 +53,14 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Authentic Apple iOS Lockscreen / SpringBoard Big Clock & Date Header.
+ * Modern Minimalist Lockscreen & SpringBoard Clock & Date Header.
+ * Fully customizable size and font weight.
  */
 @Composable
 fun IosClockHeader(
     fontFamily: FontFamily,
+    fontWeight: FontWeight = FontWeight.Bold,
+    fontSizeSp: Float = 68f,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
@@ -84,17 +85,17 @@ fun IosClockHeader(
             .clickable(onClick = onClick)
             .padding(top = 8.dp, bottom = 4.dp)
     ) {
-        // iOS Date Header (e.g. 19 Eylül Cumartesi)
+        // Date Header (e.g. 19 Eylül Cumartesi)
         Text(
             text = currentDate.ifEmpty { "Bugün" },
-            fontSize = 15.sp,
+            fontSize = (fontSizeSp * 0.22f).coerceIn(13f, 22f).sp,
             fontFamily = fontFamily,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.3.sp,
             color = Color.White.copy(alpha = 0.90f),
             style = TextStyle(
                 shadow = Shadow(
-                    color = Color.Black.copy(alpha = 0.8f),
+                    color = Color.Black.copy(alpha = 0.85f),
                     offset = Offset(0f, 2f),
                     blurRadius = 4f
                 )
@@ -103,17 +104,17 @@ fun IosClockHeader(
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Large Bold iOS Clock (e.g. 14:52)
+        // Customizable Big Clock (e.g. 14:52)
         Text(
             text = currentTime.ifEmpty { "12:00" },
-            fontSize = 72.sp,
+            fontSize = fontSizeSp.sp,
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-1.5).sp,
+            fontWeight = fontWeight,
+            letterSpacing = (-1.0).sp,
             color = Color.White,
             style = TextStyle(
                 shadow = Shadow(
-                    color = Color.Black.copy(alpha = 0.75f),
+                    color = Color.Black.copy(alpha = 0.85f),
                     offset = Offset(0f, 3f),
                     blurRadius = 6f
                 )
@@ -123,31 +124,27 @@ fun IosClockHeader(
 }
 
 /**
- * Authentic 2x2 iOS Weather Widget Card.
+ * 2x2 Weather Widget Card (Modern Matte Surface, customizable scale).
  */
 @Composable
 fun IosWeatherWidget(
     weatherState: WeatherState,
     fontFamily: FontFamily,
     modifier: Modifier = Modifier,
+    scale: Float = 1.0f,
     onClick: () -> Unit = {}
 ) {
-    val widgetShape = RoundedCornerShape(24.dp)
+    val widgetShape = RoundedCornerShape(22.dp)
+    val widthDp = (155 * scale).dp
+    val heightDp = (148 * scale).dp
 
     Box(
         modifier = modifier
-            .size(width = 160.dp, height = 155.dp)
-            .shadow(10.dp, widgetShape, ambientColor = Color.Black.copy(alpha = 0.5f))
+            .size(width = widthDp, height = heightDp)
+            .shadow(8.dp, widgetShape, ambientColor = Color.Black.copy(alpha = 0.6f))
             .clip(widgetShape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF203A43).copy(alpha = 0.85f),
-                        Color(0xFF0F2027).copy(alpha = 0.92f)
-                    )
-                )
-            )
-            .border(0.5.dp, Color.White.copy(alpha = 0.18f), widgetShape)
+            .background(Color(0xFF1E2024))
+            .border(0.5.dp, Color.White.copy(alpha = 0.12f), widgetShape)
             .clickable(onClick = onClick)
             .padding(14.dp)
     ) {
@@ -163,14 +160,14 @@ fun IosWeatherWidget(
                 Column {
                     Text(
                         text = weatherState.city,
-                        fontSize = 14.sp,
+                        fontSize = (13.5f * scale).sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
                         text = "${weatherState.temperatureCelsius}°",
-                        fontSize = 32.sp,
+                        fontSize = (30f * scale).sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
@@ -180,14 +177,14 @@ fun IosWeatherWidget(
                     imageVector = Icons.Rounded.WbSunny,
                     contentDescription = "Hava Durumu",
                     tint = Color(0xFFFFD54F),
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size((26 * scale).dp)
                 )
             }
 
             Column {
                 Text(
                     text = weatherState.condition,
-                    fontSize = 11.sp,
+                    fontSize = (11f * scale).sp,
                     fontFamily = fontFamily,
                     fontWeight = FontWeight.Medium,
                     color = Color.White.copy(alpha = 0.85f),
@@ -196,9 +193,9 @@ fun IosWeatherWidget(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "Y:${weatherState.temperatureCelsius + 3}° D:${weatherState.temperatureCelsius - 4}°",
-                    fontSize = 11.sp,
+                    fontSize = (10.5f * scale).sp,
                     fontFamily = fontFamily,
-                    color = Color.White.copy(alpha = 0.65f)
+                    color = Color.White.copy(alpha = 0.60f)
                 )
             }
         }
@@ -206,24 +203,27 @@ fun IosWeatherWidget(
 }
 
 /**
- * Authentic 2x2 iOS Batteries Widget Card.
+ * 2x2 Battery Widget Card (Modern Matte Surface, customizable scale).
  */
 @Composable
 fun IosBatteryWidget(
     batteryState: BatteryState,
     fontFamily: FontFamily,
     modifier: Modifier = Modifier,
+    scale: Float = 1.0f,
     onClick: () -> Unit = {}
 ) {
-    val widgetShape = RoundedCornerShape(24.dp)
+    val widgetShape = RoundedCornerShape(22.dp)
+    val widthDp = (155 * scale).dp
+    val heightDp = (148 * scale).dp
 
     Box(
         modifier = modifier
-            .size(width = 160.dp, height = 155.dp)
-            .shadow(10.dp, widgetShape, ambientColor = Color.Black.copy(alpha = 0.5f))
+            .size(width = widthDp, height = heightDp)
+            .shadow(8.dp, widgetShape, ambientColor = Color.Black.copy(alpha = 0.6f))
             .clip(widgetShape)
-            .background(Color(0xFF1C1C1E).copy(alpha = 0.88f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.18f), widgetShape)
+            .background(Color(0xFF1E2024))
+            .border(0.5.dp, Color.White.copy(alpha = 0.12f), widgetShape)
             .clickable(onClick = onClick)
             .padding(14.dp)
     ) {
@@ -237,8 +237,8 @@ fun IosBatteryWidget(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Piller",
-                    fontSize = 13.5.sp,
+                    text = "Pil Durumu",
+                    fontSize = (13f * scale).sp,
                     fontFamily = fontFamily,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -247,7 +247,7 @@ fun IosBatteryWidget(
                     imageVector = Icons.Rounded.BatteryFull,
                     contentDescription = "Pil",
                     tint = Color(0xFF34C759),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size((18 * scale).dp)
                 )
             }
 
@@ -255,26 +255,26 @@ fun IosBatteryWidget(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 2.dp)
             ) {
                 // Background Track
                 CircularProgressIndicator(
                     progress = { 1f },
-                    modifier = Modifier.size(54.dp),
-                    color = Color.White.copy(alpha = 0.15f),
-                    strokeWidth = 6.dp
+                    modifier = Modifier.size((50 * scale).dp),
+                    color = Color.White.copy(alpha = 0.12f),
+                    strokeWidth = 5.dp
                 )
-                // Active Level (Apple Green or Orange if <20)
+                // Active Level
                 val batteryColor = if (batteryState.levelPercent > 20) Color(0xFF34C759) else Color(0xFFFF9500)
                 CircularProgressIndicator(
                     progress = { batteryState.levelPercent / 100f },
-                    modifier = Modifier.size(54.dp),
+                    modifier = Modifier.size((50 * scale).dp),
                     color = batteryColor,
-                    strokeWidth = 6.dp
+                    strokeWidth = 5.dp
                 )
                 Text(
                     text = "${batteryState.levelPercent}%",
-                    fontSize = 13.sp,
+                    fontSize = (12f * scale).sp,
                     fontFamily = fontFamily,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -282,17 +282,17 @@ fun IosBatteryWidget(
             }
 
             Text(
-                text = if (batteryState.isCharging) "⚡ Şarj Ediliyor" else "iPhone Pili",
-                fontSize = 11.5.sp,
+                text = if (batteryState.isCharging) "⚡ Şarj Ediliyor" else "Cihaz Pili",
+                fontSize = (11f * scale).sp,
                 fontFamily = fontFamily,
-                color = Color.White.copy(alpha = 0.70f)
+                color = Color.White.copy(alpha = 0.65f)
             )
         }
     }
 }
 
 /**
- * Authentic iOS "Ara" (Search) SpringBoard Pill.
+ * Modern Search Pill.
  */
 @Composable
 fun IosSearchPill(
@@ -304,8 +304,8 @@ fun IosSearchPill(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.Black.copy(alpha = 0.35f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(16.dp))
+            .background(Color(0xFF1E2024))
+            .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp)
     ) {
@@ -329,7 +329,7 @@ fun IosSearchPill(
 }
 
 /**
- * Authentic iPhone Lockscreen style corner quick action buttons.
+ * Flashlight Quick Action button (Solid matte circle, glowing amber when on).
  */
 @Composable
 fun IosQuickActionButton(
@@ -343,34 +343,25 @@ fun IosQuickActionButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(50.dp)
+            .size(48.dp)
             .scale(scale)
             .clip(CircleShape)
             .background(
                 if (isTorch && isTorchOn) Color(0xFFFFD60A)
-                else Color.Black.copy(alpha = 0.40f)
+                else Color(0xFF1E2024)
             )
             .border(
                 0.5.dp,
-                if (isTorch && isTorchOn) Color(0xFFFFE57F) else Color.White.copy(alpha = 0.25f),
+                if (isTorch && isTorchOn) Color(0xFFFFE57F) else Color.White.copy(alpha = 0.20f),
                 CircleShape
             )
             .clickable(onClick = onClick)
     ) {
-        if (isTorch) {
-            Icon(
-                imageVector = if (isTorchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
-                contentDescription = "Fener",
-                tint = if (isTorchOn) Color.Black else Color.White,
-                modifier = Modifier.size(22.dp)
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Rounded.Wallpaper,
-                contentDescription = "Duvar Kağıdı",
-                tint = Color.White,
-                modifier = Modifier.size(22.dp)
-            )
-        }
+        Icon(
+            imageVector = if (isTorchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+            contentDescription = "Fener",
+            tint = if (isTorchOn) Color.Black else Color.White,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }

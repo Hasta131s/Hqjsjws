@@ -32,12 +32,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Launch
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -46,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -60,7 +59,8 @@ import com.example.model.AppInfo
 import com.example.viewmodel.LauncherUiState
 
 /**
- * Authentic Apple iOS App Library (Uygulama Arşivi) modal sheet.
+ * Clean Modern App Library (Uygulama Arşivi) modal sheet.
+ * Fully solid matte surfaces, no glass glare, no brand references.
  */
 @Composable
 fun IosAppLibrarySheet(
@@ -71,6 +71,7 @@ fun IosAppLibrarySheet(
     onAppClick: (AppInfo) -> Unit,
     onAppLongClick: (AppInfo) -> Unit,
     onToggleDockPin: (AppInfo) -> Unit,
+    onToggleFavorite: (AppInfo) -> Unit,
     onOpenAppDetails: (String) -> Unit,
     onUninstallApp: (String) -> Unit,
     onDismissContextMenu: () -> Unit,
@@ -85,15 +86,7 @@ fun IosAppLibrarySheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xF5101012),
-                            Color(0xF80B0C0E),
-                            Color(0xFF000000)
-                        )
-                    )
-                )
+                .background(Color(0xFF121214))
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -107,13 +100,14 @@ fun IosAppLibrarySheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // iOS Search Field Container
+                    // Modern Search Field Container
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.12f))
+                            .background(Color(0xFF222226))
+                            .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
@@ -172,176 +166,264 @@ fun IosAppLibrarySheet(
 
                     // Cancel / Close
                     Text(
-                        text = "Vazgeç",
+                        text = "Kapat",
                         color = Color(0xFF007AFF),
                         fontSize = 15.sp,
                         fontFamily = fontFamily,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .clickable(onClick = onClose)
-                            .padding(8.dp)
+                            .padding(vertical = 8.dp)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Content: Either Search Results or Categorized iOS Folder Grid
+                // Content: If searching, show list; otherwise show 2x2 Category Folders
                 if (state.searchQuery.isNotEmpty()) {
-                    // Search List Mode
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(bottom = 20.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(state.filteredApps, key = { it.packageName }) { app ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color.White.copy(alpha = 0.06f))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .clickable { onAppClick(app) }
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    .padding(horizontal = 8.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 IosAppIcon(
                                     app = app,
-                                    iconSize = 44.dp,
+                                    iconSize = 46.dp,
                                     fontFamily = fontFamily,
                                     showLabel = false,
-                                    onClick = { onAppClick(app) },
                                     onLongClick = { onAppLongClick(app) }
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
-                                Text(
-                                    text = app.label,
-                                    fontSize = 15.sp,
-                                    fontFamily = fontFamily,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.White
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = app.label,
+                                        fontSize = 16.sp,
+                                        fontFamily = fontFamily,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = app.category.titleTr,
+                                        fontSize = 12.sp,
+                                        fontFamily = fontFamily,
+                                        color = Color.White.copy(alpha = 0.5f)
+                                    )
+                                }
                             }
                         }
                     }
                 } else {
-                    // Categorized iOS Folders (2x2 Folder Blocks)
-                    val categories = listOf(
+                    // Category Folders Grid
+                    val categoriesWithApps = listOf(
+                        AppCategory.ESSENTIALS to "Önemli",
                         AppCategory.SOCIAL to "Sosyal",
-                        AppCategory.MEDIA to "Eğlence & Medya",
-                        AppCategory.TOOLS to "Yardımcı Araçlar",
-                        AppCategory.ESSENTIALS to "Üretkenlik",
+                        AppCategory.MEDIA to "Medya & Eğlence",
+                        AppCategory.TOOLS to "Araçlar",
                         AppCategory.GAMES to "Oyunlar",
-                        AppCategory.ALL to "Tüm Uygulamalar"
+                        AppCategory.SYSTEM to "Sistem"
                     )
 
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 24.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(bottom = 20.dp),
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        items(categories) { (cat, title) ->
-                            val appsInCat = if (cat == AppCategory.ALL) state.allApps
-                            else state.allApps.filter { it.category == cat }
-
-                            IosFolderCard(
-                                title = title,
+                        items(categoriesWithApps, key = { it.first.name }) { pair ->
+                            val appsInCat = state.allApps.filter { it.category == pair.first }
+                            IosCategoryFolderCard(
+                                title = pair.second,
                                 apps = appsInCat,
                                 fontFamily = fontFamily,
                                 onAppClick = onAppClick,
                                 onAppLongClick = onAppLongClick
                             )
                         }
+
+                        // Sık Kullanılanlar / Favoriler Kartı
+                        if (state.favoriteApps.isNotEmpty()) {
+                            item {
+                                IosCategoryFolderCard(
+                                    title = "Sık Kullanılanlar",
+                                    apps = state.favoriteApps,
+                                    fontFamily = fontFamily,
+                                    onAppClick = onAppClick,
+                                    onAppLongClick = onAppLongClick
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    // iOS Context Menu (3D Touch popup)
-    if (state.activeContextMenuApp != null) {
-        val app = state.activeContextMenuApp
-        IosContextMenuDialog(
-            app = app,
-            fontFamily = fontFamily,
-            isPinnedToDock = state.dockApps.any { it.packageName == app.packageName },
-            onDismiss = onDismissContextMenu,
-            onLaunch = { onAppClick(app); onDismissContextMenu() },
-            onToggleDock = { onToggleDockPin(app); onDismissContextMenu() },
-            onAppDetails = { onOpenAppDetails(app.packageName); onDismissContextMenu() },
-            onUninstall = { onUninstallApp(app.packageName); onDismissContextMenu() }
-        )
+            // Context Menu Dialog
+            state.activeContextMenuApp?.let { targetApp ->
+                val isPinned = state.dockApps.any { it.packageName == targetApp.packageName }
+                val isFavorite = state.favoriteApps.any { it.packageName == targetApp.packageName }
+                IosContextMenuDialog(
+                    app = targetApp,
+                    fontFamily = fontFamily,
+                    isPinnedToDock = isPinned,
+                    isFavorite = isFavorite,
+                    onDismiss = onDismissContextMenu,
+                    onLaunch = { onAppClick(targetApp) },
+                    onToggleDock = { onToggleDockPin(targetApp) },
+                    onToggleFavorite = { onToggleFavorite(targetApp) },
+                    onAppDetails = { onOpenAppDetails(targetApp.packageName) },
+                    onUninstall = { onUninstallApp(targetApp.packageName) }
+                )
+            }
+        }
     }
 }
 
 /**
- * 2x2 App Folder in iOS App Library.
+ * 2x2 Category Folder Card (Solid Matte Surface).
  */
 @Composable
-private fun IosFolderCard(
+private fun IosCategoryFolderCard(
     title: String,
     apps: List<AppInfo>,
     fontFamily: FontFamily,
     onAppClick: (AppInfo) -> Unit,
     onAppLongClick: (AppInfo) -> Unit
 ) {
-    val folderShape = RoundedCornerShape(26.dp)
+    val folderShape = RoundedCornerShape(22.dp)
 
-    Column {
-        Box(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(170.dp)
+            .shadow(6.dp, folderShape)
+            .clip(folderShape)
+            .background(Color(0xFF1E2024))
+            .border(0.5.dp, Color.White.copy(alpha = 0.12f), folderShape)
+            .padding(12.dp)
+    ) {
+        // 2x2 Mini Icon Grid
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(155.dp)
-                .shadow(8.dp, folderShape, ambientColor = Color.Black.copy(alpha = 0.5f))
-                .clip(folderShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(0.5.dp, Color.White.copy(alpha = 0.15f), folderShape)
-                .padding(10.dp)
+                .weight(1f)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize(),
-                userScrollEnabled = false
+            Column(
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
             ) {
-                items(apps.take(4)) { app ->
+                if (apps.isNotEmpty()) {
                     IosAppIcon(
-                        app = app,
-                        iconSize = 48.dp,
+                        app = apps[0],
+                        iconSize = 44.dp,
                         fontFamily = fontFamily,
                         showLabel = false,
-                        onClick = { onAppClick(app) },
-                        onLongClick = { onAppLongClick(app) }
+                        onClick = { onAppClick(apps[0]) },
+                        onLongClick = { onAppLongClick(apps[0]) }
                     )
+                } else {
+                    EmptyFolderSlot()
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                if (apps.size > 2) {
+                    IosAppIcon(
+                        app = apps[2],
+                        iconSize = 44.dp,
+                        fontFamily = fontFamily,
+                        showLabel = false,
+                        onClick = { onAppClick(apps[2]) },
+                        onLongClick = { onAppLongClick(apps[2]) }
+                    )
+                } else {
+                    EmptyFolderSlot()
+                }
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Column(
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                if (apps.size > 1) {
+                    IosAppIcon(
+                        app = apps[1],
+                        iconSize = 44.dp,
+                        fontFamily = fontFamily,
+                        showLabel = false,
+                        onClick = { onAppClick(apps[1]) },
+                        onLongClick = { onAppLongClick(apps[1]) }
+                    )
+                } else {
+                    EmptyFolderSlot()
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                if (apps.size > 3) {
+                    IosAppIcon(
+                        app = apps[3],
+                        iconSize = 44.dp,
+                        fontFamily = fontFamily,
+                        showLabel = false,
+                        onClick = { onAppClick(apps[3]) },
+                        onLongClick = { onAppLongClick(apps[3]) }
+                    )
+                } else {
+                    EmptyFolderSlot()
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
             text = title,
             fontSize = 12.sp,
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             color = Color.White.copy(alpha = 0.85f),
             modifier = Modifier.padding(start = 4.dp)
         )
     }
 }
 
+@Composable
+private fun EmptyFolderSlot() {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+    )
+}
+
 /**
- * Authentic Apple iOS Context Menu Popup.
+ * Modern Context Menu Popup with Home Screen Pinning, Dock Pinning, and Uninstall.
  */
 @Composable
 private fun IosContextMenuDialog(
     app: AppInfo,
     fontFamily: FontFamily,
     isPinnedToDock: Boolean,
+    isFavorite: Boolean,
     onDismiss: () -> Unit,
     onLaunch: () -> Unit,
     onToggleDock: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onAppDetails: () -> Unit,
     onUninstall: () -> Unit
 ) {
@@ -350,11 +432,11 @@ private fun IosContextMenuDialog(
 
         Box(
             modifier = Modifier
-                .width(260.dp)
+                .width(280.dp)
                 .shadow(24.dp, menuShape, ambientColor = Color.Black.copy(alpha = 0.8f))
                 .clip(menuShape)
-                .background(Color(0xF0252528))
-                .border(0.5.dp, Color.White.copy(alpha = 0.18f), menuShape)
+                .background(Color(0xFF222428))
+                .border(0.5.dp, Color.White.copy(alpha = 0.16f), menuShape)
         ) {
             Column {
                 // App Header in popup
@@ -395,7 +477,15 @@ private fun IosContextMenuDialog(
                     onClick = onLaunch
                 )
 
-                // Item 2: Pin to Dock
+                // Item 2: Add/Remove to Home/Favorites
+                IosContextMenuItem(
+                    icon = Icons.Rounded.Star,
+                    title = if (isFavorite) "Ana Ekrandan Kaldır" else "Ana Ekrana Ekle",
+                    fontFamily = fontFamily,
+                    onClick = onToggleFavorite
+                )
+
+                // Item 3: Pin to Dock
                 IosContextMenuItem(
                     icon = Icons.Rounded.PushPin,
                     title = if (isPinnedToDock) "Dock'tan Çıkar" else "Dock'a Sabitle",
@@ -403,7 +493,7 @@ private fun IosContextMenuDialog(
                     onClick = onToggleDock
                 )
 
-                // Item 3: Info
+                // Item 4: Info
                 IosContextMenuItem(
                     icon = Icons.Rounded.Info,
                     title = "Uygulama Bilgileri",
@@ -418,12 +508,12 @@ private fun IosContextMenuDialog(
                         .background(Color.White.copy(alpha = 0.12f))
                 )
 
-                // Item 4: Delete App (iOS Destructive Red)
+                // Item 5: Delete App (Destructive Red)
                 IosContextMenuItem(
                     icon = Icons.Rounded.DeleteForever,
                     title = "Uygulamayı Sil",
                     fontFamily = fontFamily,
-                    color = Color(0xFFFF3B30),
+                    color = Color(0xFFFF453A),
                     onClick = onUninstall
                 )
             }
@@ -449,7 +539,7 @@ private fun IosContextMenuItem(
     ) {
         Text(
             text = title,
-            fontSize = 14.5.sp,
+            fontSize = 14.sp,
             fontFamily = fontFamily,
             fontWeight = FontWeight.Medium,
             color = color

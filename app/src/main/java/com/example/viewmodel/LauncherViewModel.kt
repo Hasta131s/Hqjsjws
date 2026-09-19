@@ -24,6 +24,7 @@ import com.example.model.OnlineWallpaper
 import com.example.model.PerformanceMode
 import com.example.model.WallpaperCategory
 import com.example.model.WeatherState
+import com.example.ui.theme.ClockFontOption
 import com.example.ui.theme.LauncherFont
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,7 +72,12 @@ data class LauncherUiState(
     val isLoadingWallpapers: Boolean = false,
     val selectedWallpaperCategory: WallpaperCategory = WallpaperCategory.ALL,
     val previewWallpaper: OnlineWallpaper? = null,
-    val iosWallpaperPreset: IosWallpaperPreset = IosWallpaperPreset.IOS_18_NEBULA
+    val iosWallpaperPreset: IosWallpaperPreset = IosWallpaperPreset.IOS_18_NEBULA,
+    val clockSizeSp: Float = 68f,
+    val widgetScale: Float = 1.0f,
+    val clockFontOption: ClockFontOption = ClockFontOption.OUTFIT_BOLD,
+    val dockAppLimit: Int = 2,
+    val gridColumns: Int = 4
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -172,12 +178,54 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (exists) {
             currentDock.removeAll { it.packageName == app.packageName }
         } else {
-            if (currentDock.size < 5) {
+            if (currentDock.size < _uiState.value.dockAppLimit) {
+                currentDock.add(app)
+            } else if (currentDock.isNotEmpty()) {
+                currentDock.removeAt(0)
+                currentDock.add(app)
+            } else {
                 currentDock.add(app)
             }
         }
         _uiState.value = _uiState.value.copy(dockApps = currentDock)
         closeContextMenu()
+    }
+
+    fun toggleFavoriteApp(app: AppInfo) {
+        val currentFavs = _uiState.value.favoriteApps.toMutableList()
+        val exists = currentFavs.any { it.packageName == app.packageName }
+        if (exists) {
+            currentFavs.removeAll { it.packageName == app.packageName }
+        } else {
+            currentFavs.add(app)
+        }
+        _uiState.value = _uiState.value.copy(favoriteApps = currentFavs)
+        closeContextMenu()
+    }
+
+    fun setClockSize(sizeSp: Float) {
+        _uiState.value = _uiState.value.copy(clockSizeSp = sizeSp.coerceIn(40f, 105f))
+    }
+
+    fun setWidgetScale(scale: Float) {
+        _uiState.value = _uiState.value.copy(widgetScale = scale.coerceIn(0.8f, 1.25f))
+    }
+
+    fun setClockFontOption(option: ClockFontOption) {
+        _uiState.value = _uiState.value.copy(clockFontOption = option)
+    }
+
+    fun setDockAppLimit(limit: Int) {
+        val safeLimit = limit.coerceIn(1, 4)
+        val trimmedDock = _uiState.value.dockApps.take(safeLimit)
+        _uiState.value = _uiState.value.copy(
+            dockAppLimit = safeLimit,
+            dockApps = trimmedDock
+        )
+    }
+
+    fun setGridColumns(columns: Int) {
+        _uiState.value = _uiState.value.copy(gridColumns = columns.coerceIn(3, 5))
     }
 
     fun openDrawer() {
