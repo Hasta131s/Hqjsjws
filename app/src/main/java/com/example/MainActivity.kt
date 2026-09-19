@@ -27,9 +27,11 @@ class MainActivity : ComponentActivity() {
         val uiState by launcherViewModel.uiState.collectAsState()
 
         // Launcher Back Button handling:
-        // Close drawer or settings first before anything else
-        BackHandler(enabled = uiState.isDrawerOpen || uiState.isSettingsOpen) {
-          if (uiState.isSettingsOpen) {
+        // Close wallpaper manager, drawer or settings first before anything else
+        BackHandler(enabled = uiState.isDrawerOpen || uiState.isSettingsOpen || uiState.isWallpaperManagerOpen) {
+          if (uiState.isWallpaperManagerOpen) {
+            launcherViewModel.closeWallpaperManager()
+          } else if (uiState.isSettingsOpen) {
             launcherViewModel.closeSettings()
           } else if (uiState.isDrawerOpen) {
             launcherViewModel.closeDrawer()

@@ -132,37 +132,73 @@ enum class LiquidWallpaperType(
     val titleTr: String,
     val primaryColor: Color,
     val secondaryColor: Color,
-    val accentColor: Color
+    val accentColor: Color,
+    val subtitleTr: String = "Sıvı Cam Efekti",
+    val description: String = "Organik su ve cam optiği kırılımları"
 ) {
     HYDRA_ABYSS(
         "Hydra Derinliği",
         Color(0xFF040D1A),
         Color(0xFF0A2239),
-        Color(0xFF00F0FF)
+        Color(0xFF00F0FF),
+        "Derin Okyanus & Cam",
+        "Karanlık okyanus derinliklerinde turkuaz su kostikleri ve cam yansımaları"
+    ),
+    PRISMATIC_CRYSTAL(
+        "Prizmatik Kristal",
+        Color(0xFF0C1024),
+        Color(0xFF1C2248),
+        Color(0xFF80D8FF),
+        "Gökkuşağı Kırılmaları",
+        "Yüksek kırılma indeksli sıvı kuvars ve spektral renk ayrışması"
     ),
     NEON_AURORA(
         "Sıvı Aurora",
         Color(0xFF0A0E2A),
         Color(0xFF1E103A),
-        Color(0xFF00F5D4)
+        Color(0xFF00F5D4),
+        "Kutup Işıkları & Plazma",
+        "Menekşe ve elektrik yeşili akışkan dalgalar ve yumuşak ışık kırılımları"
+    ),
+    CYBER_AQUA(
+        "Siber Akua",
+        Color(0xFF021324),
+        Color(0xFF072D4A),
+        Color(0xFF00E5FF),
+        "Gelecekçi Cam Matrisi",
+        "Yüksek kontrastlı neon cam kostikleri ve keskin sıvı kenar parlamaları"
     ),
     BIOLUMINESCENT_REEF(
         "Okyanus Mercanı",
         Color(0xFF021B1A),
         Color(0xFF053835),
-        Color(0xFF00FFC2)
+        Color(0xFF00FFC2),
+        "Sualtı Biyolüminesansı",
+        "Zümrüt yeşili derin sular, fosforlu planktonlar ve yumuşak su dalgaları"
     ),
     AMETHYST_FLUID(
         "Ametist Damlası",
         Color(0xFF160926),
         Color(0xFF2D144A),
-        Color(0xFFBF55EC)
+        Color(0xFFBF55EC),
+        "Mor Kristal Sıvısı",
+        "Zengin ametist moru tonlarında parlak cam akışkanlığı"
     ),
     SUNSET_NECTAR(
         "Amber Sıvısı",
         Color(0xFF1C0D02),
         Color(0xFF381A05),
-        Color(0xFFFF9E00)
+        Color(0xFFFF9E00),
+        "Güneş Sıcaklığı",
+        "Altın bal tonlarında ılık güneş ışığı ve yumuşak sıvı cam kırınımı"
+    ),
+    OBSIDIAN_MIRROR(
+        "Obsidiyen Ayna",
+        Color(0xFF080B10),
+        Color(0xFF141922),
+        Color(0xFF90A4AE),
+        "Füme Kristal Yansıma",
+        "Minimalist koyu tonlu sıvı cam ayna ve gümüşî kostik parıltıları"
     )
 }
 

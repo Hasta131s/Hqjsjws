@@ -5,11 +5,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.engine.AppLauncherManager
 import com.example.engine.BatteryMonitor
+import com.example.engine.SystemWallpaperManager
+import com.example.engine.SystemWallpaperTarget
 import com.example.model.AppCategory
 import com.example.model.AppInfo
 import com.example.model.BatteryState
 import com.example.model.IconShape
 import com.example.model.IconThemePack
+import com.example.model.LiquidWallpaperConfig
 import com.example.model.LiquidWallpaperType
 import com.example.model.PerformanceMode
 import com.example.model.WeatherState
@@ -33,10 +36,12 @@ data class LauncherUiState(
     val iconSize: Float = 56f,
     val showLabels: Boolean = true,
     val selectedWallpaper: LiquidWallpaperType = LiquidWallpaperType.HYDRA_ABYSS,
+    val wallpaperConfig: LiquidWallpaperConfig = LiquidWallpaperConfig.defaultFor(LiquidWallpaperType.HYDRA_ABYSS),
     val performanceMode: PerformanceMode = PerformanceMode.AQUA_FLOW_120,
     val waterRippleEnabled: Boolean = true,
     val isDrawerOpen: Boolean = false,
     val isSettingsOpen: Boolean = false,
+    val isWallpaperManagerOpen: Boolean = false,
     val activeContextMenuApp: AppInfo? = null,
     val isLoadingApps: Boolean = true
 )
@@ -187,7 +192,55 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setWallpaper(wallpaper: LiquidWallpaperType) {
-        _uiState.value = _uiState.value.copy(selectedWallpaper = wallpaper)
+        val config = LiquidWallpaperConfig.defaultFor(wallpaper)
+        _uiState.value = _uiState.value.copy(
+            selectedWallpaper = wallpaper,
+            wallpaperConfig = config
+        )
+    }
+
+    fun openWallpaperManager() {
+        _uiState.value = _uiState.value.copy(isWallpaperManagerOpen = true)
+    }
+
+    fun closeWallpaperManager() {
+        _uiState.value = _uiState.value.copy(isWallpaperManagerOpen = false)
+    }
+
+    fun applyWallpaperConfig(config: LiquidWallpaperConfig) {
+        _uiState.value = _uiState.value.copy(
+            wallpaperConfig = config,
+            selectedWallpaper = config.wallpaperType,
+            isWallpaperManagerOpen = false
+        )
+    }
+
+    fun applySystemWallpaper(context: android.content.Context, config: LiquidWallpaperConfig, target: SystemWallpaperTarget) {
+        viewModelScope.launch {
+            SystemWallpaperManager.applyAsSystemWallpaper(context, config, target)
+        }
+    }
+
+    fun launchLiveWallpaperPreview(context: android.content.Context, config: LiquidWallpaperConfig) {
+        SystemWallpaperManager.launchLiveWallpaperPreview(context, config)
+    }
+
+    fun setAsDefaultLauncher(context: android.content.Context) {
+        SystemWallpaperManager.openDefaultHomeSettings(context)
+    }
+
+    fun randomizeWallpaper() {
+        val randomConfig = LiquidWallpaperConfig.generateRandomOrganic()
+        _uiState.value = _uiState.value.copy(
+            wallpaperConfig = randomConfig,
+            selectedWallpaper = randomConfig.wallpaperType
+        )
+    }
+
+    fun resetWallpaperConfig() {
+        val currentType = _uiState.value.selectedWallpaper
+        val defaultConfig = LiquidWallpaperConfig.defaultFor(currentType)
+        _uiState.value = _uiState.value.copy(wallpaperConfig = defaultConfig)
     }
 
     fun setPerformanceMode(mode: PerformanceMode) {

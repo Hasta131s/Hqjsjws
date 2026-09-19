@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,6 +58,7 @@ import com.example.ui.liquid.LiquidGlassCard
 import com.example.ui.liquid.LiquidWallpaper
 import com.example.ui.liquid.WaterRippleContainer
 import com.example.ui.settings.TvnahSettingsSheet
+import com.example.ui.wallpaper.WallpaperManagerSheet
 import com.example.ui.widgets.AtmosphericWeatherWidget
 import com.example.ui.widgets.HydraBatteryCapsuleWidget
 import com.example.ui.widgets.LiquidClockWidget
@@ -71,6 +74,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val batteryState by viewModel.batteryState.collectAsState()
     val weatherState by viewModel.weatherState.collectAsState()
+    val context = LocalContext.current
 
     val scrollState = rememberScrollState()
 
@@ -91,7 +95,7 @@ fun HomeScreen(
     ) {
         // Dynamic Liquid Glass Wallpaper
         LiquidWallpaper(
-            wallpaperType = uiState.selectedWallpaper,
+            config = uiState.wallpaperConfig,
             performanceMode = uiState.performanceMode
         )
 
@@ -145,7 +149,7 @@ fun HomeScreen(
                     LiquidGlassCard(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 10.dp),
+                            .padding(horizontal = 8.dp),
                         shape = RoundedCornerShape(18.dp),
                         blurRefractionAlpha = 0.18f,
                         onClick = { viewModel.openDrawer() }
@@ -170,6 +174,30 @@ fun HomeScreen(
                             )
                         }
                     }
+
+                    // Dynamic Wallpaper Manager Button
+                    LiquidGlassCard(
+                        shape = RoundedCornerShape(18.dp),
+                        blurRefractionAlpha = 0.22f,
+                        glowAccentColor = uiState.wallpaperConfig.wallpaperType.accentColor,
+                        onClick = { viewModel.openWallpaperManager() }
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .testTag("open_wallpaper_manager_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Wallpaper,
+                                contentDescription = "Wallpaper Studio",
+                                tint = uiState.wallpaperConfig.wallpaperType.accentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
 
                     // Settings Button
                     LiquidGlassCard(
@@ -362,7 +390,32 @@ fun HomeScreen(
             onSetWallpaper = { viewModel.setWallpaper(it) },
             onSetPerformanceMode = { viewModel.setPerformanceMode(it) },
             onToggleWaterRipple = { viewModel.toggleWaterRipple() },
-            onSetDefaultLauncher = { viewModel.openDefaultLauncherSettings() }
+            onSetDefaultLauncher = { viewModel.setAsDefaultLauncher(context) },
+            onOpenWallpaperManager = { viewModel.openWallpaperManager() },
+            onApplySystemWallpaper = { config, target ->
+                viewModel.applySystemWallpaper(context, config, target)
+            },
+            onLaunchLiveWallpaper = { config ->
+                viewModel.launchLiveWallpaperPreview(context, config)
+            }
+        )
+
+        // Dynamic Liquid-Glass Wallpaper Manager Studio Sheet
+        WallpaperManagerSheet(
+            isOpen = uiState.isWallpaperManagerOpen,
+            currentConfig = uiState.wallpaperConfig,
+            performanceMode = uiState.performanceMode,
+            onClose = { viewModel.closeWallpaperManager() },
+            onApplyConfig = { viewModel.applyWallpaperConfig(it) },
+            onApplyAsSystemWallpaper = { config, target ->
+                viewModel.applySystemWallpaper(context, config, target)
+            },
+            onLaunchLiveWallpaper = { config ->
+                viewModel.launchLiveWallpaperPreview(context, config)
+            },
+            onSetDefaultLauncher = {
+                viewModel.setAsDefaultLauncher(context)
+            }
         )
     }
 }

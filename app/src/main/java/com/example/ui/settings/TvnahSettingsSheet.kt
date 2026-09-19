@@ -28,16 +28,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.InvertColors
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material.icons.rounded.Waves
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
@@ -58,8 +65,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.engine.SystemWallpaperTarget
 import com.example.model.IconShape
 import com.example.model.IconThemePack
+import com.example.model.LiquidWallpaperConfig
 import com.example.model.LiquidWallpaperType
 import com.example.model.PerformanceMode
 import com.example.ui.liquid.LiquidGlassCard
@@ -85,7 +94,10 @@ fun TvnahSettingsSheet(
     onSetPerformanceMode: (PerformanceMode) -> Unit,
     onToggleWaterRipple: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenWallpaperManager: () -> Unit = {},
+    onApplySystemWallpaper: (LiquidWallpaperConfig, SystemWallpaperTarget) -> Unit = { _, _ -> },
+    onLaunchLiveWallpaper: (LiquidWallpaperConfig) -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(SettingsTab.LIQUID_FX) }
 
@@ -510,6 +522,193 @@ fun TvnahSettingsSheet(
                         SettingsTab.WALLPAPERS -> {
                             item {
                                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    // Full Dynamic Wallpaper Studio Action Card
+                                    LiquidGlassCard(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(20.dp),
+                                        blurRefractionAlpha = 0.30f,
+                                        glowAccentColor = Color(0xFF00F0FF),
+                                        onClick = {
+                                            onClose()
+                                            onOpenWallpaperManager()
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier
+                                                        .size(44.dp)
+                                                        .clip(RoundedCornerShape(14.dp))
+                                                        .background(Color(0xFF00F0FF).copy(alpha = 0.25f))
+                                                        .border(1.dp, Color(0xFF00F0FF).copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.AutoAwesome,
+                                                        contentDescription = "Studio",
+                                                        tint = Color(0xFF00F0FF),
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(
+                                                        text = "Canlı Sıvı Cam Stüdyosu",
+                                                        fontSize = 14.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                    Text(
+                                                        text = "Dokunmatik dalgalar, akış hızı ve kostik optik ayarları",
+                                                        fontSize = 11.sp,
+                                                        color = Color(0xFF80DEEA)
+                                                    )
+                                                }
+                                            }
+
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                                contentDescription = "Open Studio",
+                                                tint = Color(0xFF00F0FF),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // Android System Theme & Wallpaper Card
+                                    LiquidGlassCard(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(20.dp),
+                                        blurRefractionAlpha = 0.25f,
+                                        glowAccentColor = Color(0xFF00F0FF)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier
+                                                        .size(38.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Color(0xFF00F0FF).copy(alpha = 0.22f))
+                                                        .border(1.dp, Color(0xFF00F0FF).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.PhoneAndroid,
+                                                        contentDescription = "System Theme",
+                                                        tint = Color(0xFF00F0FF),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column {
+                                                    Text(
+                                                        text = "Sistem Teması ve Duvar Kağıdı",
+                                                        fontSize = 14.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                    Text(
+                                                        text = "Sıvı cam efektini telefonun tamamına uygula",
+                                                        fontSize = 11.sp,
+                                                        color = Color(0xFF80DEEA)
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(12.dp))
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        onApplySystemWallpaper(state.wallpaperConfig, SystemWallpaperTarget.HOME_SCREEN)
+                                                    },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(38.dp),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Color.White.copy(alpha = 0.10f),
+                                                        contentColor = Color.White
+                                                    )
+                                                ) {
+                                                    Text("Ana Ekran", fontSize = 11.sp)
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        onApplySystemWallpaper(state.wallpaperConfig, SystemWallpaperTarget.LOCK_SCREEN)
+                                                    },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(38.dp),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Color.White.copy(alpha = 0.10f),
+                                                        contentColor = Color.White
+                                                    )
+                                                ) {
+                                                    Text("Kilit", fontSize = 11.sp)
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        onApplySystemWallpaper(state.wallpaperConfig, SystemWallpaperTarget.BOTH)
+                                                    },
+                                                    modifier = Modifier
+                                                        .weight(1.2f)
+                                                        .height(38.dp),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Color(0xFF00F0FF).copy(alpha = 0.25f),
+                                                        contentColor = Color(0xFF00F0FF)
+                                                    )
+                                                ) {
+                                                    Text("Her İkisi", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(8.dp))
+
+                                            Button(
+                                                onClick = {
+                                                    onLaunchLiveWallpaper(state.wallpaperConfig)
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(40.dp),
+                                                shape = RoundedCornerShape(10.dp),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = Color(0xFF00E5FF).copy(alpha = 0.15f),
+                                                    contentColor = Color(0xFF00F0FF)
+                                                )
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Waves,
+                                                        contentDescription = "Live Wallpaper",
+                                                        modifier = Modifier.size(15.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("Canlı Duvar Kağıdı Olarak Ayarla", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
                                     Text(
                                         text = "Özel Sıvı Cam Duvar Kağıtları",
                                         fontSize = 15.sp,
