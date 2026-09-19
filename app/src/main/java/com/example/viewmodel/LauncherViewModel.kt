@@ -15,6 +15,9 @@ import com.example.engine.SystemWallpaperTarget
 import com.example.model.AppCategory
 import com.example.model.AppInfo
 import com.example.model.BatteryState
+import com.example.model.FolderConfig
+import com.example.model.FolderGridColumns
+import com.example.model.FolderShape
 import com.example.model.IconShape
 import com.example.model.IconThemePack
 import com.example.model.IosWallpaperPreset
@@ -94,7 +97,10 @@ data class LauncherUiState(
     val isHomeMenuOpen: Boolean = false,
     val isAddWidgetSheetOpen: Boolean = false,
     val appToRemoveOrDelete: AppInfo? = null,
-    val selectedIndividualWidgetForEdit: IndividualWidgetConfig? = null
+    val selectedIndividualWidgetForEdit: IndividualWidgetConfig? = null,
+    val folderConfig: FolderConfig = FolderConfig(),
+    val expandedFolderCategory: AppCategory? = null,
+    val isFolderConfigSheetOpen: Boolean = false
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -295,6 +301,37 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             homeWidgets = currentWidgets,
             selectedIndividualWidgetForEdit = _uiState.value.selectedIndividualWidgetForEdit?.copy(scale = newScale)
         )
+    }
+
+    fun updateWidgetHorizontalScale(type: WidgetType, newScale: Float) {
+        val clamped = newScale.coerceIn(0.6f, 1.4f)
+        val currentWidgets = _uiState.value.homeWidgets.map {
+            if (it.type == type) it.copy(horizontalScale = clamped) else it
+        }
+        _uiState.value = _uiState.value.copy(
+            homeWidgets = currentWidgets,
+            selectedIndividualWidgetForEdit = _uiState.value.selectedIndividualWidgetForEdit?.copy(horizontalScale = clamped)
+        )
+    }
+
+    fun updateWidgetVerticalScale(type: WidgetType, newScale: Float) {
+        val clamped = newScale.coerceIn(0.6f, 1.4f)
+        val currentWidgets = _uiState.value.homeWidgets.map {
+            if (it.type == type) it.copy(verticalScale = clamped) else it
+        }
+        _uiState.value = _uiState.value.copy(
+            homeWidgets = currentWidgets,
+            selectedIndividualWidgetForEdit = _uiState.value.selectedIndividualWidgetForEdit?.copy(verticalScale = clamped)
+        )
+    }
+
+    fun reorderWidgets(fromIndex: Int, toIndex: Int) {
+        val currentList = _uiState.value.homeWidgets.toMutableList()
+        if (fromIndex in currentList.indices && toIndex in currentList.indices && fromIndex != toIndex) {
+            val moved = currentList.removeAt(fromIndex)
+            currentList.add(toIndex, moved)
+            _uiState.value = _uiState.value.copy(homeWidgets = currentList)
+        }
     }
 
     fun openIndividualWidgetEditDialog(config: IndividualWidgetConfig) {
@@ -590,6 +627,38 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun closeCustomizeSheet() {
         _uiState.value = _uiState.value.copy(isCustomizeSheetOpen = false)
+    }
+
+    // Folder Customization Actions
+    fun setFolderShape(shape: FolderShape) {
+        val updated = _uiState.value.folderConfig.copy(shape = shape)
+        _uiState.value = _uiState.value.copy(folderConfig = updated)
+    }
+
+    fun setFolderOpacity(opacity: Float) {
+        val updated = _uiState.value.folderConfig.copy(opacity = opacity.coerceIn(0.15f, 1.0f))
+        _uiState.value = _uiState.value.copy(folderConfig = updated)
+    }
+
+    fun setFolderGridColumns(gridColumns: FolderGridColumns) {
+        val updated = _uiState.value.folderConfig.copy(gridColumns = gridColumns)
+        _uiState.value = _uiState.value.copy(folderConfig = updated)
+    }
+
+    fun openFolder(category: AppCategory) {
+        _uiState.value = _uiState.value.copy(expandedFolderCategory = category)
+    }
+
+    fun closeFolder() {
+        _uiState.value = _uiState.value.copy(expandedFolderCategory = null)
+    }
+
+    fun openFolderConfigSheet() {
+        _uiState.value = _uiState.value.copy(isFolderConfigSheetOpen = true)
+    }
+
+    fun closeFolderConfigSheet() {
+        _uiState.value = _uiState.value.copy(isFolderConfigSheetOpen = false)
     }
 
     fun openOnlineWallpaperSheet() {

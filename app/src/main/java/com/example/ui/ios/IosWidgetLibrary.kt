@@ -124,25 +124,27 @@ fun IndividualWidgetWrapper(
         WidgetShape.CIRCLE -> CircleShape
     }
 
-    val widthDp = when (config.size) {
+    val baseWidthDp = when (config.size) {
         WidgetSize.HORIZONTAL -> 340.dp
         WidgetSize.SQUARE -> 160.dp
         WidgetSize.VERTICAL -> 160.dp
         WidgetSize.COMPACT -> 340.dp
     }
 
-    val heightDp = when (config.size) {
+    val baseHeightDp = when (config.size) {
         WidgetSize.HORIZONTAL -> 155.dp
         WidgetSize.SQUARE -> 155.dp
         WidgetSize.VERTICAL -> 320.dp
         WidgetSize.COMPACT -> 80.dp
     }
 
+    val finalWidth = baseWidthDp * config.horizontalScale * config.scale
+    val finalHeight = baseHeightDp * config.verticalScale * config.scale
+
     Box(
         modifier = modifier
-            .width(widthDp)
-            .height(heightDp)
-            .scale(config.scale)
+            .width(finalWidth)
+            .height(finalHeight)
             .clip(cornerShape)
             .background(Color(0xFF1E2024).copy(alpha = 0.88f))
             .border(0.5.dp, Color.White.copy(alpha = 0.16f), cornerShape)
@@ -1245,6 +1247,8 @@ fun IndividualWidgetEditDialog(
     onSizeChange: (WidgetSize) -> Unit,
     onShapeChange: (WidgetShape) -> Unit,
     onScaleChange: (Float) -> Unit,
+    onHorizontalScaleChange: (Float) -> Unit = {},
+    onVerticalScaleChange: (Float) -> Unit = {},
     onDeleteWidget: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -1273,7 +1277,7 @@ fun IndividualWidgetEditDialog(
                             color = Color.White
                         )
                         Text(
-                            text = "Bileşeni özelleştir veya kaldır",
+                            text = "Bileşeni özelleştir veya boyutlandır",
                             fontSize = 12.sp,
                             fontFamily = fontFamily,
                             color = Color.White.copy(alpha = 0.6f)
@@ -1284,17 +1288,17 @@ fun IndividualWidgetEditDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // 1. BOYUT SEÇİMİ (Kare, Yatay Dikdörtgen, Dikey Dikdörtgen)
                 Text(
-                    text = "Bileşen Boyutu (Görünüm)",
+                    text = "Bileşen Boyutu (Şablon)",
                     fontSize = 13.sp,
                     fontFamily = fontFamily,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White.copy(alpha = 0.9f)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1312,11 +1316,11 @@ fun IndividualWidgetEditDialog(
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(if (isSelected) Color(0xFF007AFF) else Color.White.copy(alpha = 0.08f))
                                 .clickable { onSizeChange(size) }
-                                .padding(vertical = 10.dp)
+                                .padding(vertical = 8.dp)
                         ) {
                             Text(
                                 text = label,
-                                fontSize = 11.5.sp,
+                                fontSize = 11.sp,
                                 fontFamily = fontFamily,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f)
@@ -1325,17 +1329,74 @@ fun IndividualWidgetEditDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // 2. ŞEKİL SEÇİMİ (Squircle, Pill, Sharp, Circle)
+                // 2. YATAYLAMA (GENİŞLİK) & DİKEYLEME (YÜKSEKLİK) KÜÇÜLTÜP BÜYÜLTME
                 Text(
-                    text = "Bileşen Köşe Şekli",
-                    fontSize = 13.sp,
+                    text = "Yatay Genişlik (En): ${(config.horizontalScale * 100).toInt()}%",
+                    fontSize = 12.5.sp,
                     fontFamily = fontFamily,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White.copy(alpha = 0.9f)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Dar", fontSize = 11.sp, fontFamily = fontFamily, color = Color.White.copy(alpha = 0.5f))
+                    Slider(
+                        value = config.horizontalScale,
+                        onValueChange = onHorizontalScaleChange,
+                        valueRange = 0.6f..1.4f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF34C759),
+                            activeTrackColor = Color(0xFF34C759),
+                            inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                        )
+                    )
+                    Text("Geniş", fontSize = 11.sp, fontFamily = fontFamily, color = Color.White.copy(alpha = 0.5f))
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Dikey Yükseklik (Boy): ${(config.verticalScale * 100).toInt()}%",
+                    fontSize = 12.5.sp,
+                    fontFamily = fontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Kısa", fontSize = 11.sp, fontFamily = fontFamily, color = Color.White.copy(alpha = 0.5f))
+                    Slider(
+                        value = config.verticalScale,
+                        onValueChange = onVerticalScaleChange,
+                        valueRange = 0.6f..1.4f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFFFF9500),
+                            activeTrackColor = Color(0xFFFF9500),
+                            inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                        )
+                    )
+                    Text("Uzun", fontSize = 11.sp, fontFamily = fontFamily, color = Color.White.copy(alpha = 0.5f))
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 3. ŞEKİL SEÇİMİ (Squircle, Pill, Sharp, Circle)
+                Text(
+                    text = "Bileşen Köşe Şekli",
+                    fontSize = 12.5.sp,
+                    fontFamily = fontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1353,7 +1414,7 @@ fun IndividualWidgetEditDialog(
                         ) {
                             Text(
                                 text = shape.titleTr,
-                                fontSize = 10.5.sp,
+                                fontSize = 10.sp,
                                 fontFamily = fontFamily,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f)
@@ -1363,35 +1424,6 @@ fun IndividualWidgetEditDialog(
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
-
-                // 3. ÖLÇEK / ZOOM SLIDER
-                Text(
-                    text = "Boyut Ölçeği: ${(config.scale * 100).toInt()}%",
-                    fontSize = 13.sp,
-                    fontFamily = fontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Rounded.ZoomOut, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
-                    Slider(
-                        value = config.scale,
-                        onValueChange = onScaleChange,
-                        valueRange = 0.75f..1.25f,
-                        modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF007AFF),
-                            activeTrackColor = Color(0xFF007AFF),
-                            inactiveTrackColor = Color.White.copy(alpha = 0.15f)
-                        )
-                    )
-                    Icon(Icons.Rounded.ZoomIn, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 // 4. BİLEŞENİ SİL / KALDIR BUTONU
                 Box(
@@ -1405,12 +1437,12 @@ fun IndividualWidgetEditDialog(
                             onDeleteWidget()
                             onDismiss()
                         }
-                        .padding(vertical = 11.dp)
+                        .padding(vertical = 10.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Delete, contentDescription = "Sil", tint = Color(0xFFFF453A), modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Bileşeni Ana Ekrandan Kaldır (Sil)", fontSize = 13.5.sp, fontFamily = fontFamily, fontWeight = FontWeight.SemiBold, color = Color(0xFFFF453A))
+                        Text("Bileşeni Ana Ekrandan Kaldır (Sil)", fontSize = 13.sp, fontFamily = fontFamily, fontWeight = FontWeight.SemiBold, color = Color(0xFFFF453A))
                     }
                 }
             }

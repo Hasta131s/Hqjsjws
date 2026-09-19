@@ -38,6 +38,35 @@ enum class WidgetShape(val titleTr: String, val cornerRadiusPercent: Float) {
 }
 
 /**
+ * Geometric shape options specifically for App Folders (Klasörler).
+ */
+enum class FolderShape(val titleTr: String, val cornerRadiusDp: Float) {
+    SQUIRCLE("Yumuşak Kare", 22f),
+    PILL("Kapsül / Yuvarlak", 32f),
+    SHARP("Keskin Modern", 10f),
+    CIRCLE("Dairesel", 40f)
+}
+
+/**
+ * Grid layout columns for expanded folder view.
+ */
+enum class FolderGridColumns(val titleTr: String, val columns: Int) {
+    THREE("3x3 Izgara", 3),
+    FOUR("4x4 Izgara", 4),
+    TWO("2x2 Kompakt", 2)
+}
+
+/**
+ * Configuration for folder appearance & inner grid layout.
+ */
+data class FolderConfig(
+    val shape: FolderShape = FolderShape.SQUIRCLE,
+    val opacity: Float = 0.85f, // 0.20f (transparent) to 1.0f (solid matte)
+    val gridColumns: FolderGridColumns = FolderGridColumns.FOUR,
+    val blurIntensity: Float = 1.0f
+)
+
+/**
  * Dimension / aspect size for individual widgets.
  */
 enum class WidgetSize(val titleTr: String, val spanColumns: Int) {
@@ -69,6 +98,8 @@ data class IndividualWidgetConfig(
     val size: WidgetSize = type.defaultSize,
     val shape: WidgetShape = WidgetShape.ROUNDED_SQUIRCLE,
     val scale: Float = 1.0f,
+    val horizontalScale: Float = 1.0f,
+    val verticalScale: Float = 1.0f,
     val isVisible: Boolean = true
 )
 

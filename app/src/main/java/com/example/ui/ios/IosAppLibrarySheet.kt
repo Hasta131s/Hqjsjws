@@ -27,21 +27,31 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Launch
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +66,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.model.AppCategory
 import com.example.model.AppInfo
+import com.example.model.FolderConfig
 import com.example.viewmodel.LauncherUiState
+import kotlinx.coroutines.launch
 
 /**
  * Clean Modern App Library (Uygulama Arşivi) modal sheet.
@@ -75,6 +87,8 @@ fun IosAppLibrarySheet(
     onOpenAppDetails: (String) -> Unit,
     onUninstallApp: (String) -> Unit,
     onDismissContextMenu: () -> Unit,
+    onOpenFolder: (AppCategory) -> Unit = {},
+    onOpenFolderConfig: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
@@ -177,46 +191,187 @@ fun IosAppLibrarySheet(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Content: If searching, show list; otherwise show 2x2 Category Folders
-                if (state.searchQuery.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                // View Mode Switcher: "Kategoriler" vs "A-Z Tüm Uygulamalar" (When not searching)
+                var isAlphabeticalMode by remember { mutableStateOf(false) }
+                val showAlphabetical = state.searchQuery.isNotEmpty() || isAlphabeticalMode
+
+                if (state.searchQuery.isEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        items(state.filteredApps, key = { it.packageName }) { app ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { onAppClick(app) }
-                                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IosAppIcon(
-                                    app = app,
-                                    iconSize = 46.dp,
-                                    fontFamily = fontFamily,
-                                    showLabel = false,
-                                    onLongClick = { onAppLongClick(app) }
-                                )
-                                Spacer(modifier = Modifier.width(14.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = app.label,
-                                        fontSize = 16.sp,
-                                        fontFamily = fontFamily,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = app.category.titleTr,
-                                        fontSize = 12.sp,
-                                        fontFamily = fontFamily,
-                                        color = Color.White.copy(alpha = 0.5f)
+                        Text(
+                            text = if (isAlphabeticalMode) "Tüm Uygulamalar (A-Z)" else "Kategoriler",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 13.sp,
+                            fontFamily = fontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Quick button to customize folders
+                            if (!isAlphabeticalMode) {
+                                IconButton(
+                                    onClick = onOpenFolderConfig,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF222226))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Tune,
+                                        contentDescription = "Klasör Ayarları",
+                                        tint = Color(0xFF007AFF),
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF222226))
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { isAlphabeticalMode = false },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.GridView,
+                                        contentDescription = "Kategori Görünümü",
+                                        tint = if (!isAlphabeticalMode) Color(0xFF007AFF) else Color.White.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { isAlphabeticalMode = true },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Apps,
+                                        contentDescription = "A-Z Liste Görünümü",
+                                        tint = if (isAlphabeticalMode) Color(0xFF007AFF) else Color.White.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Alphabet index list & list state
+                val alphabetListState = rememberLazyListState()
+                val coroutineScope = rememberCoroutineScope()
+
+                // Content: Either Search/A-Z list with Right Alphabet Bar, or 2x2 Category Folders
+                if (showAlphabetical) {
+                    val displayApps = if (state.searchQuery.isNotEmpty()) {
+                        state.filteredApps
+                    } else {
+                        state.allApps.sortedBy { it.label.lowercase() }
+                    }
+
+                    // Pre-calculate index positions for each letter
+                    val alphabetChars = listOf(
+                        "A", "B", "C", "Ç", "D", "E", "F", "G", "H", "I", "İ", "J",
+                        "K", "L", "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U",
+                        "Ü", "V", "Y", "Z", "#"
+                    )
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Scrollable App List
+                        LazyColumn(
+                            state = alphabetListState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(end = 26.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(displayApps, key = { it.packageName }) { app ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { onAppClick(app) }
+                                        .padding(horizontal = 8.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    IosAppIcon(
+                                        app = app,
+                                        iconSize = 46.dp,
+                                        fontFamily = fontFamily,
+                                        showLabel = false,
+                                        onLongClick = { onAppLongClick(app) }
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = app.label,
+                                            fontSize = 15.sp,
+                                            fontFamily = fontFamily,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = app.category.titleTr,
+                                            fontSize = 12.sp,
+                                            fontFamily = fontFamily,
+                                            color = Color.White.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Right-Hand Vertical Alphabet Index Bar (iOS-like A-Z quick jump)
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .padding(horizontal = 4.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            alphabetChars.forEach { char ->
+                                val targetIndex = displayApps.indexOfFirst { app ->
+                                    val firstChar = app.label.firstOrNull()?.uppercaseChar()?.toString() ?: ""
+                                    if (char == "#") {
+                                        firstChar.isNotEmpty() && !firstChar[0].isLetter()
+                                    } else {
+                                        firstChar == char
+                                    }
+                                }
+
+                                val isAvailable = targetIndex != -1
+
+                                Text(
+                                    text = char,
+                                    fontSize = 10.sp,
+                                    fontFamily = fontFamily,
+                                    fontWeight = if (isAvailable) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isAvailable) Color(0xFF007AFF) else Color.White.copy(alpha = 0.25f),
+                                    modifier = Modifier
+                                        .clickable(enabled = isAvailable) {
+                                            if (targetIndex != -1) {
+                                                coroutineScope.launch {
+                                                    alphabetListState.animateScrollToItem(targetIndex)
+                                                }
+                                            }
+                                        }
+                                        .padding(vertical = 1.dp, horizontal = 2.dp)
+                                )
                             }
                         }
                     }
@@ -243,7 +398,9 @@ fun IosAppLibrarySheet(
                             IosCategoryFolderCard(
                                 title = pair.second,
                                 apps = appsInCat,
+                                folderConfig = state.folderConfig,
                                 fontFamily = fontFamily,
+                                onOpenFolder = { onOpenFolder(pair.first) },
                                 onAppClick = onAppClick,
                                 onAppLongClick = onAppLongClick
                             )
@@ -255,7 +412,9 @@ fun IosAppLibrarySheet(
                                 IosCategoryFolderCard(
                                     title = "Sık Kullanılanlar",
                                     apps = state.favoriteApps,
+                                    folderConfig = state.folderConfig,
                                     fontFamily = fontFamily,
+                                    onOpenFolder = { onOpenFolder(AppCategory.ESSENTIALS) },
                                     onAppClick = onAppClick,
                                     onAppLongClick = onAppLongClick
                                 )
@@ -287,17 +446,20 @@ fun IosAppLibrarySheet(
 }
 
 /**
- * 2x2 Category Folder Card (Solid Matte Surface).
+ * 2x2 Category Folder Card (Custom Shape, Transparency & Tap to Expand).
  */
 @Composable
 private fun IosCategoryFolderCard(
     title: String,
     apps: List<AppInfo>,
+    folderConfig: FolderConfig,
     fontFamily: FontFamily,
+    onOpenFolder: () -> Unit,
     onAppClick: (AppInfo) -> Unit,
     onAppLongClick: (AppInfo) -> Unit
 ) {
-    val folderShape = RoundedCornerShape(22.dp)
+    val folderShape = getFolderCornerShape(folderConfig.shape)
+    val folderBgColor = Color(0xFF1E2024).copy(alpha = folderConfig.opacity)
 
     Column(
         modifier = Modifier
@@ -305,8 +467,8 @@ private fun IosCategoryFolderCard(
             .height(170.dp)
             .shadow(6.dp, folderShape)
             .clip(folderShape)
-            .background(Color(0xFF1E2024))
-            .border(0.5.dp, Color.White.copy(alpha = 0.12f), folderShape)
+            .background(folderBgColor)
+            .border(0.5.dp, Color.White.copy(alpha = 0.15f), folderShape)
             .padding(12.dp)
     ) {
         // 2x2 Mini Icon Grid
@@ -373,7 +535,26 @@ private fun IosCategoryFolderCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                if (apps.size > 3) {
+                if (apps.size > 4) {
+                    // 4th slot shows a mini 2x2 or +N badge representing remaining apps
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                            .clickable(onClick = onOpenFolder)
+                    ) {
+                        Text(
+                            text = "+${apps.size - 3}",
+                            fontSize = 13.sp,
+                            fontFamily = fontFamily,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                } else if (apps.size == 4) {
                     IosAppIcon(
                         app = apps[3],
                         iconSize = 44.dp,
@@ -390,14 +571,29 @@ private fun IosCategoryFolderCard(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        Text(
-            text = title,
-            fontSize = 12.sp,
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White.copy(alpha = 0.85f),
-            modifier = Modifier.padding(start = 4.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpenFolder)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontFamily = fontFamily,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.90f)
+            )
+            Text(
+                text = "${apps.size}",
+                fontSize = 11.sp,
+                fontFamily = fontFamily,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.50f)
+            )
+        }
     }
 }
 

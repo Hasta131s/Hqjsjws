@@ -36,10 +36,13 @@ import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.FlashlightOn
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.FormatSize
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Opacity
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
@@ -63,6 +66,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.FolderGridColumns
+import com.example.model.FolderShape
 import com.example.model.IosWallpaperPreset
 import com.example.model.WidgetShape
 import com.example.ui.theme.ClockFontOption
@@ -97,6 +102,10 @@ fun IosSettingsSheet(
     onChangeWidgetShape: (WidgetShape) -> Unit = {},
     onChangeDockLimit: (Int) -> Unit,
     onChangeGridColumns: (Int) -> Unit,
+    onChangeFolderShape: (FolderShape) -> Unit = {},
+    onChangeFolderOpacity: (Float) -> Unit = {},
+    onChangeFolderGridColumns: (FolderGridColumns) -> Unit = {},
+    onOpenFolderConfig: () -> Unit = {},
     onToggleClock: () -> Unit,
     onToggleWeather: () -> Unit,
     onToggleBattery: () -> Unit,
@@ -417,6 +426,121 @@ fun IosSettingsSheet(
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = Color.White
                                 )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 5.1: FOLDER CUSTOMIZATION (Shape, Opacity & Grid)
+                IosSectionHeader(title = "UYGULAMA KLASÖRLERİ", fontFamily = fontFamily)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                IosGroupCard {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        // Folder Shape
+                        Text(
+                            text = "Klasör Köşe Şekli",
+                            fontSize = 12.sp,
+                            fontFamily = fontFamily,
+                            color = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            FolderShape.values().forEach { shape ->
+                                val isSelected = state.folderConfig.shape == shape
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                        .clickable { onChangeFolderShape(shape) }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = shape.titleTr,
+                                        fontSize = 10.5.sp,
+                                        fontFamily = fontFamily,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Folder Opacity Slider
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Klasör Şeffaflığı / Opaklığı",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "%${(state.folderConfig.opacity * 100).toInt()}",
+                                fontSize = 12.sp,
+                                fontFamily = fontFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF007AFF)
+                            )
+                        }
+
+                        Slider(
+                            value = state.folderConfig.opacity,
+                            onValueChange = onChangeFolderOpacity,
+                            valueRange = 0.20f..1.0f,
+                            steps = 15,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFF007AFF),
+                                activeTrackColor = Color(0xFF007AFF),
+                                inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Folder Inner Grid Columns
+                        Text(
+                            text = "Klasör İçi Izgara Düzeni",
+                            fontSize = 12.sp,
+                            fontFamily = fontFamily,
+                            color = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            FolderGridColumns.values().forEach { colOption ->
+                                val isSelected = state.folderConfig.gridColumns == colOption
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) Color(0xFF007AFF) else Color(0xFF26282E))
+                                        .clickable { onChangeFolderGridColumns(colOption) }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = colOption.titleTr,
+                                        fontSize = 11.sp,
+                                        fontFamily = fontFamily,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }

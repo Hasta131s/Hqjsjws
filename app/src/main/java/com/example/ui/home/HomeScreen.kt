@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -83,6 +84,8 @@ import com.example.ui.ios.BatteryWidgetContent
 import com.example.ui.ios.CalendarWidgetContent
 import com.example.ui.ios.ClockWidgetContent
 import com.example.ui.ios.ControlsWidgetContent
+import com.example.ui.ios.ExpandedFolderDialog
+import com.example.ui.ios.FolderConfigSheet
 import com.example.ui.ios.HomeActionMenuSheet
 import com.example.ui.ios.IndividualWidgetEditDialog
 import com.example.ui.ios.IndividualWidgetWrapper
@@ -141,9 +144,9 @@ fun HomeScreen(
         label = "jiggle_anim"
     )
 
-    // Upward drag opens the App Library (drawer)
+    // Upward drag opens the App Library (drawer) - responsive swipe up anywhere on home screen
     val swipeDraggableState = rememberDraggableState { delta ->
-        if (delta < -18f && !uiState.isDrawerOpen) {
+        if (delta < -10f && !uiState.isDrawerOpen && !uiState.isEditMode) {
             viewModel.openDrawer()
         }
     }
@@ -263,9 +266,12 @@ fun HomeScreen(
                 )
             }
 
-            // Customizable Dynamic Widgets Row (+6 Widgets with individual sizes & shapes)
+            // Customizable Dynamic Widgets Row (+6 Widgets with individual sizes & shapes + Drag & Drop Reordering)
             val visibleWidgets = uiState.homeWidgets.filter { it.isVisible }
             if (visibleWidgets.isNotEmpty()) {
+                var draggedWidgetIndex by remember { mutableIntStateOf(-1) }
+                var widgetDragOffsetX by remember { mutableFloatStateOf(0f) }
+
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -274,61 +280,197 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(visibleWidgets, key = { it.type.name }) { widgetConfig ->
-                        IndividualWidgetWrapper(
-                            config = widgetConfig,
-                            fontFamily = activeFontFamily,
-                            onClick = {
-                                when (widgetConfig.type) {
-                                    WidgetType.WEATHER -> viewModel.refreshWeather()
-                                    WidgetType.BATTERY -> viewModel.toggleEcoMode()
-                                    WidgetType.CONTROLS -> viewModel.toggleTorch(context)
-                                    else -> {}
+                    itemsIndexed(visibleWidgets, key = { _, it -> it.type.name }) { wIndex, widgetConfig ->
+                        val isWidgetBeingDragged = draggedWidgetIndex == wIndex
+
+                        Box(
+                            modifier = Modifier
+                                .animateItemPlacement()
+                                .rotate(if (uiState.isEditMode && !isWidgetBeingDragged) jiggleRotation else 0f)
+                                .offset {
+                                    if (isWidgetBeingDragged) IntOffset(widgetDragOffsetX.roundToInt(), 0)
+                                    else IntOffset.Zero
                                 }
-                            },
-                            onLongClick = {
-                                viewModel.openIndividualWidgetEditDialog(widgetConfig)
-                            }
+                                .zIndex(if (isWidgetBeingDragged) 10f else 1f)
+                                .scale(if (isWidgetBeingDragged) 1.08f else 1.0f)
+                                .pointerInput(uiState.isEditMode) {
+                                    if (uiState.isEditMode) {
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = {
+                                                draggedWidgetIndex = wIndex
+                                                widgetDragOffsetX = 0f
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                widgetDragOffsetX += dragAmount.x
+                                                val thresholdPx = 90.dp.toPx()
+
+                                                if (widgetDragOffsetX > thresholdPx && draggedWidgetIndex < visibleWidgets.size - 1) {
+                                                    val target = draggedWidgetIndex + 1
+                                                    // Map visible indices back to homeWidgets indices in ViewModel
+                                                    val fromOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[draggedWidgetIndex].type }
+                                                    val toOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[target].type }
+                                                    if (fromOriginal != -1 && toOriginal != -1) {
+                                                        viewModel.reorderWidgets(fromOriginal, toOriginal)
+                                                    }
+                                                    draggedWidgetIndex = target
+                                                    widgetDragOffsetX = 0f
+                                                } else if (widgetDragOffsetX < -thresholdPx && draggedWidgetIndex > 0) {
+                                                    val target = draggedWidgetIndex - 1
+                                                    val fromOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[draggedWidgetIndex].type }
+                                                    val toOriginal = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[target].type }
+                                                    if (fromOriginal != -1 && toOriginal != -1) {
+                                                        viewModel.reorderWidgets(fromOriginal, toOriginal)
+                                                    }
+                                                    draggedWidgetIndex = target
+                                                    widgetDragOffsetX = 0f
+                                                }
+                                            },
+                                            onDragEnd = {
+                                                draggedWidgetIndex = -1
+                                                widgetDragOffsetX = 0f
+                                            },
+                                            onDragCancel = {
+                                                draggedWidgetIndex = -1
+                                                widgetDragOffsetX = 0f
+                                            }
+                                        )
+                                    }
+                                }
                         ) {
-                            when (widgetConfig.type) {
-                                WidgetType.CLOCK -> ClockWidgetContent(
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily
-                                )
-                                WidgetType.WEATHER -> WeatherWidgetContent(
-                                    weatherState = weatherState,
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily
-                                )
-                                WidgetType.BATTERY -> BatteryWidgetContent(
-                                    batteryState = batteryState,
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily,
-                                    onToggleEcoMode = { viewModel.toggleEcoMode() }
-                                )
-                                WidgetType.MEDIA -> MediaWidgetContent(
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily
-                                )
-                                WidgetType.CONTROLS -> ControlsWidgetContent(
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily,
-                                    isTorchOn = uiState.isTorchOn,
-                                    onToggleTorch = { viewModel.toggleTorch(context) }
-                                )
-                                WidgetType.CALENDAR -> CalendarWidgetContent(
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily
-                                )
-                                WidgetType.NOTES -> NotesWidgetContent(
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily
-                                )
-                                WidgetType.SPEED_DIAL -> SpeedDialWidgetContent(
-                                    size = widgetConfig.size,
-                                    fontFamily = activeFontFamily,
-                                    context = context
-                                )
+                            IndividualWidgetWrapper(
+                                config = widgetConfig,
+                                fontFamily = activeFontFamily,
+                                onClick = {
+                                    if (uiState.isEditMode) {
+                                        viewModel.setEditMode(false)
+                                    } else {
+                                        when (widgetConfig.type) {
+                                            WidgetType.WEATHER -> viewModel.refreshWeather()
+                                            WidgetType.BATTERY -> viewModel.toggleEcoMode()
+                                            WidgetType.CONTROLS -> viewModel.toggleTorch(context)
+                                            else -> {}
+                                        }
+                                    }
+                                },
+                                onLongClick = {
+                                    viewModel.setEditMode(true)
+                                    viewModel.openIndividualWidgetEditDialog(widgetConfig)
+                                }
+                            ) {
+                                when (widgetConfig.type) {
+                                    WidgetType.CLOCK -> ClockWidgetContent(
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily
+                                    )
+                                    WidgetType.WEATHER -> WeatherWidgetContent(
+                                        weatherState = weatherState,
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily
+                                    )
+                                    WidgetType.BATTERY -> BatteryWidgetContent(
+                                        batteryState = batteryState,
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily,
+                                        onToggleEcoMode = { viewModel.toggleEcoMode() }
+                                    )
+                                    WidgetType.MEDIA -> MediaWidgetContent(
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily
+                                    )
+                                    WidgetType.CONTROLS -> ControlsWidgetContent(
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily,
+                                        isTorchOn = uiState.isTorchOn,
+                                        onToggleTorch = { viewModel.toggleTorch(context) }
+                                    )
+                                    WidgetType.CALENDAR -> CalendarWidgetContent(
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily
+                                    )
+                                    WidgetType.NOTES -> NotesWidgetContent(
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily
+                                    )
+                                    WidgetType.SPEED_DIAL -> SpeedDialWidgetContent(
+                                        size = widgetConfig.size,
+                                        fontFamily = activeFontFamily,
+                                        context = context
+                                    )
+                                }
+                            }
+
+                            // Edit Mode Badges: Remove / Configure & Quick move
+                            if (uiState.isEditMode) {
+                                // Red minus badge on top-left to delete/remove widget
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .offset(x = (-4).dp, y = (-4).dp)
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFF3B30))
+                                        .border(1.5.dp, Color.White, CircleShape)
+                                        .clickable {
+                                            viewModel.removeHomeWidget(widgetConfig.type)
+                                        }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Remove,
+                                        contentDescription = "Widgetı Kaldır",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+
+                                // Quick reorder directional arrows (Left & Right)
+                                Row(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .offset(y = 6.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.Black.copy(alpha = 0.85f))
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (wIndex > 0) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.ArrowBack,
+                                            contentDescription = "Sola Taşı",
+                                            tint = Color.White,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clickable {
+                                                    val fromOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex].type }
+                                                    val toOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex - 1].type }
+                                                    if (fromOrig != -1 && toOrig != -1) {
+                                                        viewModel.reorderWidgets(fromOrig, toOrig)
+                                                    }
+                                                }
+                                        )
+                                    }
+                                    if (wIndex > 0 && wIndex < visibleWidgets.size - 1) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    if (wIndex < visibleWidgets.size - 1) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.ArrowForward,
+                                            contentDescription = "Sağa Taşı",
+                                            tint = Color.White,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clickable {
+                                                    val fromOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex].type }
+                                                    val toOrig = uiState.homeWidgets.indexOfFirst { it.type == visibleWidgets[wIndex + 1].type }
+                                                    if (fromOrig != -1 && toOrig != -1) {
+                                                        viewModel.reorderWidgets(fromOrig, toOrig)
+                                                    }
+                                                }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -507,12 +649,22 @@ fun HomeScreen(
 
             // "Ara" (Search) Pill with Swipe-up hint
             if (uiState.showSearchBar) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 4.dp),
-                    contentAlignment = Alignment.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Small swipe up chevron indicator
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowUp,
+                        contentDescription = "Yukarı kaydır",
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable { viewModel.openDrawer() }
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
                     IosSearchPill(
                         fontFamily = activeFontFamily,
                         onClick = { viewModel.openDrawer() }
@@ -593,6 +745,12 @@ fun HomeScreen(
                 onScaleChange = { newScale ->
                     viewModel.updateWidgetScale(widgetConfig.type, newScale)
                 },
+                onHorizontalScaleChange = { newHorizontalScale ->
+                    viewModel.updateWidgetHorizontalScale(widgetConfig.type, newHorizontalScale)
+                },
+                onVerticalScaleChange = { newVerticalScale ->
+                    viewModel.updateWidgetVerticalScale(widgetConfig.type, newVerticalScale)
+                },
                 onDeleteWidget = {
                     viewModel.removeHomeWidget(widgetConfig.type)
                 },
@@ -611,7 +769,7 @@ fun HomeScreen(
             )
         }
 
-        // 7. App Library Sheet with Favorite & Dock toggling + uninstall
+        // 7. App Library Sheet with Favorite & Dock toggling + uninstall + folder customization
         IosAppLibrarySheet(
             state = uiState,
             fontFamily = activeFontFamily,
@@ -623,7 +781,47 @@ fun HomeScreen(
             onToggleFavorite = { viewModel.toggleFavoriteApp(it) },
             onOpenAppDetails = { viewModel.openAppDetails(it) },
             onUninstallApp = { viewModel.uninstallApp(it) },
-            onDismissContextMenu = { viewModel.closeContextMenu() }
+            onDismissContextMenu = { viewModel.closeContextMenu() },
+            onOpenFolder = { viewModel.openFolder(it) },
+            onOpenFolderConfig = { viewModel.openFolderConfigSheet() }
+        )
+
+        // 7.1 Expanded Category Folder Dialog (with custom shapes, opacity, and grid columns)
+        uiState.expandedFolderCategory?.let { category ->
+            val appsInCat = uiState.allApps.filter { it.category == category }
+            val categoryTitle = when (category) {
+                com.example.model.AppCategory.ESSENTIALS -> "Önemli"
+                com.example.model.AppCategory.SOCIAL -> "Sosyal"
+                com.example.model.AppCategory.MEDIA -> "Medya & Eğlence"
+                com.example.model.AppCategory.TOOLS -> "Araçlar"
+                com.example.model.AppCategory.GAMES -> "Oyunlar"
+                com.example.model.AppCategory.SYSTEM -> "Sistem"
+                com.example.model.AppCategory.ALL -> "Tüm Uygulamalar"
+            }
+            ExpandedFolderDialog(
+                category = category,
+                categoryTitle = categoryTitle,
+                apps = appsInCat,
+                folderConfig = uiState.folderConfig,
+                fontFamily = activeFontFamily,
+                onDismiss = { viewModel.closeFolder() },
+                onAppClick = { viewModel.launchApp(it) },
+                onAppLongClick = { viewModel.openContextMenu(it) },
+                onOpenFolderSettings = {
+                    viewModel.openFolderConfigSheet()
+                }
+            )
+        }
+
+        // 7.2 Folder Customization Sheet (Shape, Opacity & Grid layout)
+        FolderConfigSheet(
+            isOpen = uiState.isFolderConfigSheetOpen,
+            folderConfig = uiState.folderConfig,
+            fontFamily = activeFontFamily,
+            onClose = { viewModel.closeFolderConfigSheet() },
+            onShapeChange = { viewModel.setFolderShape(it) },
+            onOpacityChange = { viewModel.setFolderOpacity(it) },
+            onGridColumnsChange = { viewModel.setFolderGridColumns(it) }
         )
 
         // 8. Settings & Customization Sheet
@@ -644,6 +842,10 @@ fun HomeScreen(
             onChangeWidgetShape = { viewModel.setWidgetShape(it) },
             onChangeDockLimit = { viewModel.setDockAppLimit(it) },
             onChangeGridColumns = { viewModel.setGridColumns(it) },
+            onChangeFolderShape = { viewModel.setFolderShape(it) },
+            onChangeFolderOpacity = { viewModel.setFolderOpacity(it) },
+            onChangeFolderGridColumns = { viewModel.setFolderGridColumns(it) },
+            onOpenFolderConfig = { viewModel.openFolderConfigSheet() },
             onToggleClock = { viewModel.toggleClockWidget() },
             onToggleWeather = { viewModel.toggleWeatherWidget() },
             onToggleBattery = { viewModel.toggleBatteryWidget() },
