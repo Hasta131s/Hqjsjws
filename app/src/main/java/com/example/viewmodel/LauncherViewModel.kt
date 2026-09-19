@@ -24,7 +24,10 @@ import com.example.model.OnlineWallpaper
 import com.example.model.PerformanceMode
 import com.example.model.WallpaperCategory
 import com.example.model.WeatherState
+import com.example.model.IndividualWidgetConfig
 import com.example.model.WidgetShape
+import com.example.model.WidgetSize
+import com.example.model.WidgetType
 import com.example.ui.theme.ClockFontOption
 import com.example.ui.theme.LauncherFont
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,7 +84,17 @@ data class LauncherUiState(
     val dockAppLimit: Int = 2,
     val gridColumns: Int = 4,
     val isEditMode: Boolean = false,
-    val selectedWidgetForEdit: String? = null
+    val selectedWidgetForEdit: String? = null,
+    val homeWidgets: List<IndividualWidgetConfig> = listOf(
+        IndividualWidgetConfig(type = WidgetType.WEATHER, size = WidgetSize.SQUARE),
+        IndividualWidgetConfig(type = WidgetType.BATTERY, size = WidgetSize.SQUARE),
+        IndividualWidgetConfig(type = WidgetType.CONTROLS, size = WidgetSize.SQUARE),
+        IndividualWidgetConfig(type = WidgetType.MEDIA, size = WidgetSize.HORIZONTAL)
+    ),
+    val isHomeMenuOpen: Boolean = false,
+    val isAddWidgetSheetOpen: Boolean = false,
+    val appToRemoveOrDelete: AppInfo? = null,
+    val selectedIndividualWidgetForEdit: IndividualWidgetConfig? = null
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -217,6 +230,108 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setWidgetShape(shape: WidgetShape) {
         _uiState.value = _uiState.value.copy(widgetShape = shape)
+    }
+
+    fun openHomeMenu() {
+        _uiState.value = _uiState.value.copy(isHomeMenuOpen = true)
+    }
+
+    fun closeHomeMenu() {
+        _uiState.value = _uiState.value.copy(isHomeMenuOpen = false)
+    }
+
+    fun openAddWidgetSheet() {
+        _uiState.value = _uiState.value.copy(isAddWidgetSheetOpen = true, isHomeMenuOpen = false)
+    }
+
+    fun closeAddWidgetSheet() {
+        _uiState.value = _uiState.value.copy(isAddWidgetSheetOpen = false)
+    }
+
+    fun addHomeWidget(type: WidgetType, size: WidgetSize) {
+        val currentWidgets = _uiState.value.homeWidgets.toMutableList()
+        val existingIndex = currentWidgets.indexOfFirst { it.type == type }
+        if (existingIndex >= 0) {
+            currentWidgets[existingIndex] = currentWidgets[existingIndex].copy(size = size, isVisible = true)
+        } else {
+            currentWidgets.add(IndividualWidgetConfig(type = type, size = size))
+        }
+        _uiState.value = _uiState.value.copy(homeWidgets = currentWidgets)
+    }
+
+    fun removeHomeWidget(type: WidgetType) {
+        val currentWidgets = _uiState.value.homeWidgets.filter { it.type != type }
+        _uiState.value = _uiState.value.copy(
+            homeWidgets = currentWidgets,
+            selectedIndividualWidgetForEdit = null
+        )
+    }
+
+    fun updateWidgetSize(type: WidgetType, newSize: WidgetSize) {
+        val currentWidgets = _uiState.value.homeWidgets.map {
+            if (it.type == type) it.copy(size = newSize) else it
+        }
+        _uiState.value = _uiState.value.copy(
+            homeWidgets = currentWidgets,
+            selectedIndividualWidgetForEdit = _uiState.value.selectedIndividualWidgetForEdit?.copy(size = newSize)
+        )
+    }
+
+    fun updateWidgetShape(type: WidgetType, newShape: WidgetShape) {
+        val currentWidgets = _uiState.value.homeWidgets.map {
+            if (it.type == type) it.copy(shape = newShape) else it
+        }
+        _uiState.value = _uiState.value.copy(
+            homeWidgets = currentWidgets,
+            selectedIndividualWidgetForEdit = _uiState.value.selectedIndividualWidgetForEdit?.copy(shape = newShape)
+        )
+    }
+
+    fun updateWidgetScale(type: WidgetType, newScale: Float) {
+        val currentWidgets = _uiState.value.homeWidgets.map {
+            if (it.type == type) it.copy(scale = newScale.coerceIn(0.75f, 1.25f)) else it
+        }
+        _uiState.value = _uiState.value.copy(
+            homeWidgets = currentWidgets,
+            selectedIndividualWidgetForEdit = _uiState.value.selectedIndividualWidgetForEdit?.copy(scale = newScale)
+        )
+    }
+
+    fun openIndividualWidgetEditDialog(config: IndividualWidgetConfig) {
+        _uiState.value = _uiState.value.copy(selectedIndividualWidgetForEdit = config)
+    }
+
+    fun closeIndividualWidgetEditDialog() {
+        _uiState.value = _uiState.value.copy(selectedIndividualWidgetForEdit = null)
+    }
+
+    fun openAppRemoveOrDeleteDialog(app: AppInfo) {
+        _uiState.value = _uiState.value.copy(appToRemoveOrDelete = app)
+    }
+
+    fun closeAppRemoveOrDeleteDialog() {
+        _uiState.value = _uiState.value.copy(appToRemoveOrDelete = null)
+    }
+
+    fun removeFromHomeScreen(app: AppInfo) {
+        val currentFavs = _uiState.value.favoriteApps.filter { it.packageName != app.packageName }
+        _uiState.value = _uiState.value.copy(favoriteApps = currentFavs)
+        closeAppRemoveOrDeleteDialog()
+        closeContextMenu()
+    }
+
+    fun uninstallApp(app: AppInfo) {
+        launcherManager.uninstallApp(app.packageName)
+        val currentFavs = _uiState.value.favoriteApps.filter { it.packageName != app.packageName }
+        val currentDock = _uiState.value.dockApps.filter { it.packageName != app.packageName }
+        val currentAll = _uiState.value.allApps.filter { it.packageName != app.packageName }
+        _uiState.value = _uiState.value.copy(
+            favoriteApps = currentFavs,
+            dockApps = currentDock,
+            allApps = currentAll
+        )
+        closeAppRemoveOrDeleteDialog()
+        closeContextMenu()
     }
 
     fun openWidgetEditDialog(widgetKey: String) {
@@ -532,6 +647,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun clearCustomGalleryWallpaper() {
         _uiState.value = _uiState.value.copy(customGalleryWallpaperUri = null)
+    }
+
+    fun openDefaultLauncherSettings(context: Context) {
+        SystemWallpaperManager.openDefaultHomeSettings(context)
     }
 
     fun uninstallApp(packageName: String) {

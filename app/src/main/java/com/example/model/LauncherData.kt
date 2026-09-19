@@ -28,7 +28,7 @@ enum class AppCategory(val titleTr: String) {
 }
 
 /**
- * Geometric shape for Home widgets (Weather, Battery, Clock).
+ * Geometric shape for Home widgets (Weather, Battery, Clock, Media, etc.).
  */
 enum class WidgetShape(val titleTr: String, val cornerRadiusPercent: Float) {
     ROUNDED_SQUIRCLE("Köşeli Yumuşak", 22f),
@@ -36,6 +36,41 @@ enum class WidgetShape(val titleTr: String, val cornerRadiusPercent: Float) {
     SHARP_MODERN("Keskin Modern", 10f),
     CIRCLE("Dairesel / Oval", 50f)
 }
+
+/**
+ * Dimension / aspect size for individual widgets.
+ */
+enum class WidgetSize(val titleTr: String, val spanColumns: Int) {
+    SQUARE("Kare (2x2)", 2),
+    HORIZONTAL("Yatay Dikdörtgen (4x2)", 4),
+    VERTICAL("Dikey Dikdörtgen (2x4)", 2),
+    COMPACT("Kompakt", 2)
+}
+
+/**
+ * Available widget types in the launcher (+6 distinct widgets).
+ */
+enum class WidgetType(val id: String, val titleTr: String, val subtitleTr: String, val defaultSize: WidgetSize) {
+    CLOCK("clock", "Saat & Tarih", "Modern minimalist saat, tarih ve saniye", WidgetSize.HORIZONTAL),
+    WEATHER("weather", "Hava Durumu", "Gerçek zamanlı sıcaklık, tahmin ve nem", WidgetSize.SQUARE),
+    BATTERY("battery", "Pil & Enerji", "Pil seviyesi, şarj durumu ve eko modu", WidgetSize.SQUARE),
+    MEDIA("media", "Müzik Çalar", "Çalan parça, albüm kapağı ve kontroller", WidgetSize.HORIZONTAL),
+    CONTROLS("controls", "Hızlı Kontroller", "Fener, Wi-Fi, Bluetooth ve ses karoları", WidgetSize.SQUARE),
+    CALENDAR("calendar", "Ajanda & Takvim", "Günün tarihi ve haftalık takvim şeridi", WidgetSize.HORIZONTAL),
+    NOTES("notes", "Günün Notu & Sözü", "Hızlı notlar ve motivasyon kartı", WidgetSize.HORIZONTAL),
+    SPEED_DIAL("speed_dial", "Hızlı Arama", "Sık aranan kişiler ve rehber kısayolu", WidgetSize.SQUARE)
+}
+
+/**
+ * Individual widget configuration. Each widget has its own size, shape, scale, and visibility.
+ */
+data class IndividualWidgetConfig(
+    val type: WidgetType,
+    val size: WidgetSize = type.defaultSize,
+    val shape: WidgetShape = WidgetShape.ROUNDED_SQUIRCLE,
+    val scale: Float = 1.0f,
+    val isVisible: Boolean = true
+)
 
 /**
  * Geometric shape for app icons with liquid styling.
